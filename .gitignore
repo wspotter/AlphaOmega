@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Environment
+.env
+.env.local
+
+# Logs
+logs/
+*.log
+
+# Models (too large for git)
+models/ollama/*
+models/comfyui/*
+!models/ollama/.gitkeep
+!models/comfyui/.gitkeep
+
+# Temporary files
+/tmp/
+*.tmp
+screenshots/
+/agent_screenshots/
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# OpenWebUI data
+openwebui_data/
+
+# ComfyUI output
+comfyui_bridge/output/*
+!comfyui_bridge/output/.gitkeep
+
+# MCP artifacts
+/artifacts/
+*.artifact
+
+# Test outputs
+.pytest_cache/
+.coverage
+htmlcov/

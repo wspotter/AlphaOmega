@@ -1,0 +1,49 @@
+# AlphaOmega Python Dependencies
+
+# Core Framework
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# HTTP Clients
+httpx>=0.25.2
+aiohttp>=3.9.1
+websockets>=12.0
+
+# Ollama
+ollama>=0.1.6
+
+# Computer Use / Automation
+pyautogui>=0.9.54
+python-mss>=9.0.1
+Pillow>=10.1.0
+pynput>=1.7.6
+
+# Image Processing
+opencv-python>=4.8.1.78
+numpy>=1.26.2
+
+# System Integration
+psutil>=5.9.6
+python-dotenv>=1.0.0
+
+# Logging
+loguru>=0.7.2
+
+# Data Validation
+jsonschema>=4.20.0
+
+# Testing
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+pytest-cov>=4.1.0
+pytest-mock>=3.12.0
+
+# Development
+black>=23.12.0
+ruff>=0.1.8
+mypy>=1.7.1
+
+# Optional: Performance monitoring
+prometheus-client>=0.19.0
