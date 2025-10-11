@@ -32,6 +32,17 @@ else
     echo "Ollama services already running"
 fi
 
+# Start Piper TTS API
+echo "Starting Piper TTS API..."
+if ! pgrep -f "piper_api.py" > /dev/null; then
+    cd tts && python piper_api.py > ../logs/piper-api.log 2>&1 &
+    cd ..
+    sleep 2
+    echo "Started Piper TTS API on port 5002"
+else
+    echo "Piper TTS API already running"
+fi
+
 # Start Docker services
 echo "Starting Docker services..."
 docker-compose up -d
@@ -44,6 +55,7 @@ echo "  - OpenWebUI: http://localhost:3000"
 echo "  - Agent-S API: http://localhost:8001"
 echo "  - ComfyUI: http://localhost:8188"
 echo "  - MCP Server: http://localhost:8002"
+echo "  - Piper TTS API: http://localhost:5002"
 echo ""
 echo "Check status: docker-compose ps"
 echo "View logs: docker-compose logs -f"

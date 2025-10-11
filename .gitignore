@@ -58,3 +58,6 @@ comfyui_bridge/output/*
 .pytest_cache/
 .coverage
 htmlcov/
+# Exclude large voice model files - download via script
+tts/*.onnx
+tts/*.onnx.json
