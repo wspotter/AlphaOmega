@@ -37,7 +37,7 @@ app = FastAPI(
 
 # Configuration
 CONFIG = {
-    # Use jenny for best quality - natural, smooth, female voice
+    # Use jenny for best quality - 48kHz high-fidelity neural voice with natural prosody
     "default_model": "tts_models/en/jenny/jenny",
     # Fallback to tacotron2-DDC (very stable, good quality)
     "fallback_model": "tts_models/en/ljspeech/tacotron2-DDC",
@@ -174,14 +174,14 @@ async def create_speech(request: TTSRequest):
         logger.info(f"TTS request: model={request.model}, voice={request.voice}, text length={len(request.input)}")
         
         # Map OpenAI-like model names and voice hints to specific Coqui models
-        # Use jenny by default for best quality, smooth natural speech
+        # Use jenny by default for best quality (48kHz high-fidelity)
         if request.voice and request.voice.lower() in ("vctk", "multi", "multispeaker"):
             coqui_model = "tts_models/en/vctk/vits"
         elif request.model in ("tts-1-hd", "hd"):
-            # High-quality request - use jenny
+            # High-quality request - use jenny (48kHz)
             coqui_model = "tts_models/en/jenny/jenny"
         else:
-            # Default to jenny for smooth, natural quality
+            # Default to jenny for smooth, high-quality audio
             coqui_model = CONFIG["default_model"]
         
         logger.info(f"Mapped model: {request.model} -> {coqui_model}")
