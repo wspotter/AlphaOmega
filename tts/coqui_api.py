@@ -37,9 +37,10 @@ app = FastAPI(
 
 # Configuration
 CONFIG = {
-    # Use a very stable English model by default to avoid runtime shape errors
-    "default_model": "tts_models/en/ljspeech/tacotron2-DDC",
-    "fallback_model": "tts_models/en/ljspeech/vits",
+    # Use jenny for best quality - natural, smooth, female voice
+    "default_model": "tts_models/en/jenny/jenny",
+    # Fallback to tacotron2-DDC (very stable, good quality)
+    "fallback_model": "tts_models/en/ljspeech/tacotron2-DDC",
     "xtts_model": "tts_models/multilingual/multi-dataset/xtts_v2",  # For voice cloning
     # Prefer CPU unless CUDA is explicitly available; ROCm setups generally use CPU here
     "gpu_device": "cuda:0" if os.getenv("CUDA_VISIBLE_DEVICES") else "cpu",
@@ -173,12 +174,15 @@ async def create_speech(request: TTSRequest):
         logger.info(f"TTS request: model={request.model}, voice={request.voice}, text length={len(request.input)}")
         
         # Map OpenAI-like model names and voice hints to specific Coqui models
-        # Single-speaker English defaults work without extra params
+        # Use jenny by default for best quality, smooth natural speech
         if request.voice and request.voice.lower() in ("vctk", "multi", "multispeaker"):
             coqui_model = "tts_models/en/vctk/vits"
+        elif request.model in ("tts-1-hd", "hd"):
+            # High-quality request - use jenny
+            coqui_model = "tts_models/en/jenny/jenny"
         else:
-            # Choose default English single-speaker model
-            coqui_model = CONFIG["default_model"] if request.model in ("tts-1", "tts", "default", None) else CONFIG["default_model"]
+            # Default to jenny for smooth, natural quality
+            coqui_model = CONFIG["default_model"]
         
         logger.info(f"Mapped model: {request.model} -> {coqui_model}")
         
