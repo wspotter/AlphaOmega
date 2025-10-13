@@ -4,10 +4,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including build tools
 RUN apt-get update && apt-get install -y \
     git \
     ffmpeg \
+    build-essential \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
 # Install numpy first (required by pkuseg during chatterbox install)
