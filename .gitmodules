@@ -1,0 +1,6 @@
+[submodule "mcpart"]
+	path = mcpart
+	url = https://github.com/wspotter/mcpart
+[submodule "tts/coqui-tts"]
+	path = tts/coqui-tts
+	url = https://github.com/coqui-ai/TTS.git

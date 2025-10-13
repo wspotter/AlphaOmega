@@ -18,35 +18,35 @@ class Pipeline:
     class Valves(BaseModel):
         """Pipeline configuration - editable from OpenWebUI"""
         OLLAMA_VISION_HOST: str = Field(
-            default="http://host.docker.internal:11434",
-            description="Ollama vision endpoint (GPU 0 - LLaVA)"
+            default="http://localhost:11434",
+            description="Ollama endpoint (GPU1 MI50 - LLaVA, Mistral, CodeLlama)"
         )
         OLLAMA_REASONING_HOST: str = Field(
-            default="http://host.docker.internal:11435",
-            description="Ollama reasoning endpoint (GPU 1 - Mistral/CodeLlama)"
+            default="http://localhost:11434",
+            description="Ollama endpoint (same as vision - single instance)"
         )
         COMFYUI_HOST: str = Field(
-            default="http://comfyui:8188",
-            description="ComfyUI endpoint (GPU 2 - Image generation)"
+            default="http://localhost:8188",
+            description="ComfyUI endpoint (GPU2 MI50 - Image generation)"
         )
         AGENT_S_HOST: str = Field(
-            default="http://host.docker.internal:8001",
+            default="http://localhost:8001",
             description="Agent-S endpoint (Computer use)"
         )
         MCP_HOST: str = Field(
-            default="http://mcp-server:8002",
+            default="http://localhost:8002",
             description="MCP server endpoint (Artifacts, memory, files)"
         )
         VISION_MODEL: str = Field(
-            default="llava:34b",
+            default="devstral-vision",
             description="Vision model for screen analysis"
         )
         REASONING_MODEL: str = Field(
-            default="mistral",
+            default="llama3-8b",
             description="Reasoning model for planning"
         )
         CODE_MODEL: str = Field(
-            default="codellama:13b",
+            default="phind-codellama",
             description="Code generation model"
         )
         ENABLE_LOGGING: bool = Field(

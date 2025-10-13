@@ -11,8 +11,15 @@ curl -s http://localhost:11434/api/tags 2>/dev/null | grep -o "\"name\":\"[^\"]*
 curl -s http://localhost:11435/api/tags 2>/dev/null | grep -o "\"name\":\"[^\"]*\"" || echo "GPU 1 (Reasoning): Not responding"
 
 echo ""
-echo "=== Docker Services ==="
-docker-compose ps 2>/dev/null || echo "Docker Compose not running"
+echo "=== Container Services ==="
+echo "No Docker containers in use (host-only mode)"
+
+echo ""
+echo "=== Host Services ==="
+echo -n "Agent-S: "
+if pgrep -f "python.*agent_s.server" > /dev/null; then echo "Running"; else echo "Not running"; fi
+echo -n " | MCP Server: "
+if pgrep -f "node.*build/index.js" > /dev/null; then echo "Running"; else echo "Not running"; fi
 
 echo ""
 echo "=== Service Health ==="

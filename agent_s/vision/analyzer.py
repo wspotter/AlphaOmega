@@ -19,14 +19,14 @@ class VisionAnalyzer:
     def __init__(
         self,
         ollama_host: str = "http://localhost:11434",
-        model: str = "llava:34b"
+        model: str = "devstral-vision"
     ):
         """
         Initialize vision analyzer
         
         Args:
-            ollama_host: Ollama API endpoint (GPU 0 - MI50 #1)
-            model: Vision model to use (default: llava:34b)
+            ollama_host: Ollama API endpoint (GPU1 MI50)
+            model: Vision model to use (default: devstral-vision)
         """
         self.ollama_host = ollama_host
         self.model = model

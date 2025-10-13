@@ -8,6 +8,7 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
+import shutil
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
@@ -19,7 +20,17 @@ import glob
 app = FastAPI(title="Piper TTS API", version="2.0.0")
 
 # Configuration
-PIPER_BINARY = Path(__file__).parent / "piper" / "piper"
+def _locate_piper_binary() -> Path:
+    local = Path(__file__).parent / "piper" / "piper"
+    if local.exists():
+        return local
+    # Try system PATH
+    which = shutil.which("piper")
+    if which:
+        return Path(which)
+    return local  # non-existing; health endpoint will reflect
+
+PIPER_BINARY = _locate_piper_binary()
 VOICES_DIR = Path(__file__).parent
 
 # Discover all available voices

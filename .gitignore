@@ -45,6 +45,10 @@ Thumbs.db
 
 # OpenWebUI data
 openwebui_data/
+.webui_secret_key
+
+# Review folder (pending cleanup verification)
+review/
 
 # ComfyUI output
 comfyui_bridge/output/*
@@ -61,3 +65,6 @@ htmlcov/
 # Exclude large voice model files - download via script
 tts/*.onnx
 tts/*.onnx.json
+# Also ignore ONNX models anywhere in the repo
+*.onnx
+*.onnx.json

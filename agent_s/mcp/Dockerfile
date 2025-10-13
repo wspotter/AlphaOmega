@@ -1,15 +1,19 @@
 # MCP Server Dockerfile
-FROM python:3.11-slim
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Install dependencies
-COPY agent_s/mcp/requirements.txt* ./
-RUN pip install --no-cache-dir fastapi uvicorn pydantic httpx
+# Copy package files
+COPY mcpart/package*.json ./
 
-# Copy MCP server code
-# Note: This assumes mcpart repo will be cloned/added as submodule
-COPY agent_s/mcp/ /app/
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY mcpart/ ./
+
+# Build the application
+RUN npm run build
 
 # Create artifact directory
 RUN mkdir -p /artifacts
@@ -17,6 +21,8 @@ RUN mkdir -p /artifacts
 # Expose port
 EXPOSE 8002
 
+# Set environment variables
+ENV MCP_PORT=8002
+
 # Run MCP server
-# This is a placeholder - actual mcpart server command depends on its implementation
-CMD ["python", "-m", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8002"]
+CMD ["npm", "start"]

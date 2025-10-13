@@ -1,3 +1,5 @@
+# NOTE: This file is kept for reference but NOT USED in host-only mode
+# All services run directly on the host system
 version: '3.8'
 
 services:
@@ -20,65 +22,6 @@ services:
     restart: unless-stopped
     networks:
       - alphaomega-network
-    depends_on:
-      - ollama-vision
-      - ollama-reasoning
-
-  # Ollama Vision - GPU 0 (MI50 #1) - LLaVA 34B
-  ollama-vision:
-    image: ollama/ollama:rocm
-    container_name: alphaomega-ollama-vision
-    ports:
-      - "11434:11434"
-    volumes:
-      - ./models/ollama:/root/.ollama
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-      - OLLAMA_KEEP_ALIVE=-1
-      - HSA_OVERRIDE_GFX_VERSION=9.0.0
-      - ROCR_VISIBLE_DEVICES=0
-      - HSA_ENABLE_SDMA=0
-    devices:
-      - /dev/kfd:/dev/kfd
-      - /dev/dri:/dev/dri
-    restart: unless-stopped
-    networks:
-      - alphaomega-network
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: amd
-              count: 1
-              capabilities: [gpu]
-
-  # Ollama Reasoning - GPU 1 (MI50 #2) - Mistral/CodeLlama
-  ollama-reasoning:
-    image: ollama/ollama:rocm
-    container_name: alphaomega-ollama-reasoning
-    ports:
-      - "11435:11434"
-    volumes:
-      - ./models/ollama:/root/.ollama
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-      - OLLAMA_KEEP_ALIVE=-1
-      - HSA_OVERRIDE_GFX_VERSION=9.0.0
-      - ROCR_VISIBLE_DEVICES=1
-      - HSA_ENABLE_SDMA=0
-    devices:
-      - /dev/kfd:/dev/kfd
-      - /dev/dri:/dev/dri
-    restart: unless-stopped
-    networks:
-      - alphaomega-network
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: amd
-              count: 1
-              capabilities: [gpu]
 
   # ComfyUI - GPU 2 (MI50 #3) - Image Generation
   comfyui:
@@ -99,59 +42,6 @@ services:
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
-    restart: unless-stopped
-    networks:
-      - alphaomega-network
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: amd
-              count: 1
-              capabilities: [gpu]
-
-  # Agent-S - Computer Use Automation (Host Network for X11)
-  agent-s:
-    build:
-      context: .
-      dockerfile: Dockerfile.agent_s
-    container_name: alphaomega-agent-s
-    network_mode: "host"
-    volumes:
-      - ./agent_s:/app/agent_s
-      - ./config:/app/config
-      - ./logs:/app/logs
-      - /tmp/.X11-unix:/tmp/.X11-unix:ro
-      - /run/user/1000:/run/user/1000:ro
-      - /tmp:/tmp
-    environment:
-      - DISPLAY=${DISPLAY:-:0}
-      - WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-wayland-0}
-      - OLLAMA_VISION_HOST=http://localhost:11434
-      - OLLAMA_REASONING_HOST=http://localhost:11435
-      - MCP_SERVER_URL=http://localhost:8002
-      - AGENT_S_PORT=${AGENT_S_PORT:-8001}
-      - AGENT_SAFE_MODE=${AGENT_SAFE_MODE:-true}
-      - PYTHONUNBUFFERED=1
-    privileged: true
-    restart: unless-stopped
-
-  # MCP Server - mcpart Integration
-  mcp-server:
-    build:
-      context: ./agent_s/mcp
-      dockerfile: Dockerfile
-    container_name: alphaomega-mcp
-    ports:
-      - "${MCP_SERVER_PORT:-8002}:8002"
-    volumes:
-      - ./agent_s/mcp:/app
-      - ${MCP_ARTIFACT_DIR:-/tmp/mcp_artifacts}:/artifacts
-      - ./logs:/app/logs
-    environment:
-      - MCP_PORT=8002
-      - ARTIFACT_DIR=/artifacts
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     restart: unless-stopped
     networks:
       - alphaomega-network

@@ -1,36 +1,53 @@
-# AlphaOmega 🔱
+# AlphaOmega 🚀
 
-> **The Ultimate Local AI Orchestration Platform**
+> **Unified Local AI Orchestration Platform**
 > 
-> Multi-GPU AI system combining vision, reasoning, image generation, and computer use automation - all running locally on AMD MI50 GPUs.
+> A complete AI infrastructure running entirely on your hardware - no cloud dependencies, complete privacy.
 
-## Overview
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![ROCm Compatible](https://img.shields.io/badge/ROCm-Compatible-orange.svg)](https://rocm.docs.amd.com/)
 
-AlphaOmega is a unified AI platform that brings together multiple cutting-edge capabilities:
+## 🌟 Features
 
-- 🧠 **Multi-Model LLM Inference** - LLaVA 34B (vision), Mistral (reasoning), CodeLlama (code generation)
-- 🎨 **Image Generation** - ComfyUI with SDXL/Flux workflows
-- 🖥️ **Computer Use Automation** - AI-powered screen analysis and action execution
-- 🔧 **Tool Integration** - MCP server for artifacts, memory, and file operations
-- 🌐 **Unified Interface** - Single OpenWebUI portal for all interactions
+### Core Services
+- **🌐 OpenWebUI** - Unified web interface for all AI interactions
+- **🤖 Ollama** - Local LLM inference with 25+ models (Mistral, LLaVA, CodeLlama, etc.)
+- **🔧 MCP Server** - 76 unified business tools (inventory, sales, social media, tasks, files)
+- **🗣️ Coqui TTS** - Professional text-to-speech with voice cloning
 
-### Why AlphaOmega?
+### In Development
+- **🎨 ComfyUI** - Advanced image generation (SDXL, Flux workflows)
+- **🖥️ Agent-S** - Computer use automation (screen analysis, mouse/keyboard control)
+
+### Web Dashboard
+- ✅ Real-time service monitoring (auto-refresh every 3 seconds)
+- ✅ One-click start/stop controls for all services  
+- ✅ System resource monitoring (CPU, RAM, Disk)
+- ✅ Direct links to running services
+- ✅ Process management and logging
+
+## 🎯 Philosophy
 
 - **Privacy-First**: Everything runs locally - no cloud APIs, no data leaving your machine
-- **Powerful Hardware**: Leverages 3× AMD MI50 GPUs (144GB VRAM total) for enterprise-grade performance
-- **Intelligent Routing**: Automatically routes requests to the appropriate backend
-- **Safety Built-In**: Action validation and permissions system prevents dangerous operations
-- **Production-Ready**: Docker orchestration, health checks, logging, and monitoring
+- **No Docker Dependencies**: Pure local execution for maximum control
+- **AMD GPU Optimized**: Built for AMD MI50 GPUs with ROCm support
+- **Production-Ready**: Complete with monitoring, logging, and safety validators
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- **Hardware**: AMD MI50 GPUs (or other ROCm-compatible GPUs)
-- **Software**: 
-  - ROCm 6.0+ ([installation guide](https://rocm.docs.amd.com/))
-  - Docker & Docker Compose
-  - Git
+**Hardware:**
+- AMD MI50 GPUs (or other ROCm-compatible GPUs) recommended
+- 16GB+ RAM minimum
+- 100GB+ free disk space
+
+**Software:**
+- Linux (Ubuntu 22.04+ recommended)
+- Python 3.12+
+- ROCm 6.0+ ([installation guide](https://rocm.docs.amd.com/))
+- Node.js 18+ (for MCP server)
 
 ### Installation
 
@@ -39,361 +56,247 @@ AlphaOmega is a unified AI platform that brings together multiple cutting-edge c
 git clone https://github.com/wspotter/AlphaOmega.git
 cd AlphaOmega
 
-# Run setup script (installs dependencies, pulls models, builds containers)
-./scripts/setup.sh
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
 
-# Configure your GPU assignments
-nano .env  # Edit GPU IDs to match your system
+# Install dependencies
+pip install -r requirements.txt
 
-# Start all services
-./scripts/start.sh
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Start the dashboard
+./scripts/start-dashboard.sh
 ```
 
-### Access
+The dashboard will open automatically at **http://localhost:5000**
 
-- **OpenWebUI**: http://localhost:3000 - Main interface
-- **Agent-S API**: http://localhost:8001 - Computer use automation
-- **ComfyUI**: http://localhost:8188 - Image generation
-- **Ollama Vision**: http://localhost:11434 - LLaVA inference
-- **Ollama Reasoning**: http://localhost:11435 - Mistral/CodeLlama
+From there, you can start all services with one click! 🎉
 
-## Architecture
+## 📊 Service Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                  OpenWebUI (Port 3000)                       │
-│              [Unified User Interface]                        │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-          ┌──────────┴──────────┐
-          │  Pipeline Router    │
-          │  (Intent Detection) │
-          └──────────┬──────────┘
-                     │
-     ┌───────────────┼───────────────┐
-     │               │               │
-┌────▼─────┐  ┌─────▼──────┐  ┌────▼─────┐  ┌──────────┐
-│  Ollama  │  │  ComfyUI   │  │ Agent-S  │  │   MCP    │
-│ MI50 0,1 │  │  MI50 #2   │  │ Computer │  │  Server  │
-│          │  │            │  │   Use    │  │          │
-│ LLaVA    │  │   SDXL     │  │  Vision  │  │Artifacts │
-│ Mistral  │  │   Flux     │  │  Actions │  │ Memory   │
-│CodeLlama │  │ControlNet  │  │  Safety  │  │  Files   │
-└──────────┘  └────────────┘  └──────────┘  └──────────┘
+┌─────────────────────────────────────────────────────────┐
+│                  Dashboard (Port 5000)                  │
+│              Web-based Service Management               │
+└─────────────────────────────────────────────────────────┘
+                          │
+        ┌─────────────────┼─────────────────┬─────────────┐
+        │                 │                 │             │
+   ┌────▼────┐      ┌─────▼─────┐    ┌─────▼─────┐ ┌────▼────┐
+   │OpenWebUI│      │  Ollama   │    │    MCP    │ │Coqui TTS│
+   │  :8080  │      │  :11434   │    │   :8002   │ │  :5002  │
+   └─────────┘      └───────────┘    └───────────┘ └─────────┘
+        │                 │                 │             │
+        └─────────────────┴─────────────────┴─────────────┘
+                    All Running Locally
 ```
 
-### GPU Distribution
+## 📖 Usage
 
-```yaml
-MI50 GPU 0 (48GB): Ollama Vision - llava:34b
-MI50 GPU 1 (48GB): Ollama Reasoning - mistral, codellama:13b
-MI50 GPU 2 (48GB): ComfyUI - SDXL, Flux, ControlNet
-RX 6600XT (8GB):   Display output only
-```
-
-## Features
-
-### 1. Multi-Modal Conversation
-
-Chat naturally and AlphaOmega automatically routes your request:
-
-- **"What's on my screen?"** → Agent-S captures screenshot, LLaVA analyzes
-- **"Generate an image of a futuristic city"** → ComfyUI with SDXL
-- **"Write a Python function to parse JSON"** → CodeLlama on GPU 1
-- **"Remember this for later"** → MCP server memory
-
-### 2. Computer Use Automation
-
-AI-powered control of your desktop:
-
-```
-User: "Take a screenshot and click on the Firefox icon"
-
-AlphaOmega:
-1. Captures screen
-2. Analyzes with LLaVA 34B
-3. Locates Firefox icon
-4. Validates action safety
-5. Executes mouse click
-6. Returns confirmation
-```
-
-### 3. Image Generation
-
-High-quality image generation with ComfyUI:
-
-- SDXL workflows for photorealistic images
-- Flux for artistic generation
-- ControlNet for precise control
-- Custom workflows support
-
-### 4. Intelligent Code Generation
-
-CodeLlama 13B optimized for programming:
-
-- Multi-language support
-- Context-aware completions
-- Refactoring and optimization
-- Bug detection and fixes
-
-## Usage Examples
-
-### Basic Chat
-
-```
-You: Explain quantum computing
-AlphaOmega: [Routes to Mistral on GPU 1]
-[Detailed explanation...]
-```
-
-### Computer Use
-
-```
-You: What applications are currently open?
-AlphaOmega: [Routes to Agent-S]
-[Captures screenshot, analyzes with LLaVA]
-
-I can see the following applications:
-- Firefox (top-left)
-- VS Code (center)
-- Terminal (bottom)
-```
-
-### Image Generation
-
-```
-You: Generate an image of a cyberpunk street at night
-AlphaOmega: [Routes to ComfyUI on GPU 2]
-[Generates image with SDXL]
-✅ Image generated successfully!
-[Displays image]
-```
-
-### Code Generation
-
-```
-You: Write a FastAPI endpoint to handle file uploads
-AlphaOmega: [Routes to CodeLlama on GPU 1]
-[Generates complete, production-ready code]
-```
-
-## Configuration
-
-### Environment Variables
-
-Key settings in `.env`:
+### Start Everything
 
 ```bash
-# GPU Assignments
-OLLAMA_GPU_0=0          # Vision model GPU
-OLLAMA_GPU_1=1          # Reasoning/code GPU
-COMFYUI_GPU=2           # Image generation GPU
+# Option 1: Use the web dashboard (recommended)
+./scripts/start-dashboard.sh
+# Then click "Start All Services" at http://localhost:5000
 
-# Models
-VISION_MODEL=llava:34b
-REASONING_MODEL=mistral
-CODE_MODEL=codellama:13b
-
-# Safety
-AGENT_SAFE_MODE=true
-AGENT_ALLOW_FILE_WRITE=false
-AGENT_ALLOW_SYSTEM_COMMANDS=false
+# Option 2: Start services individually
+./scripts/start-openwebui.sh      # OpenWebUI on port 8080
+./scripts/start-mcp-unified.sh    # MCP Server on port 8002  
+./tts/start_coqui_api.sh          # Coqui TTS on port 5002
 ```
 
-### Safety Configuration
+### Access Services
 
-Edit `config/permissions/agent_permissions.yaml`:
+- **Dashboard**: http://localhost:5000 (service management)
+- **OpenWebUI**: http://localhost:8080 (main AI interface)
+- **Ollama API**: http://localhost:11434 (LLM endpoint)
+- **MCP Server**: http://localhost:8002 (business tools)
+- **Coqui TTS**: http://localhost:5002 (text-to-speech)
 
-```yaml
-mouse_actions:
-  enabled: true
-  
-keyboard_actions:
-  enabled: true
-  dangerous_hotkeys:
-    - "ctrl+alt+delete"
-    - "alt+f4"
-  
-file_operations:
-  enabled: false  # Disabled by default
-  allowed_paths:
-    - /tmp
-    - /home/*/Downloads
-  
-system_commands:
-  enabled: false  # Disabled by default
-```
-
-## Management
-
-### Starting Services
+### Check Status
 
 ```bash
-./scripts/start.sh
+# Quick status check
+./scripts/check-services.sh
+
+# View logs
+tail -f logs/dashboard.log
+tail -f logs/openwebui.log
+tail -f logs/mcp-unified.log
 ```
 
-### Stopping Services
+### Stop Everything
 
 ```bash
-./scripts/stop.sh
+# Via dashboard: click "Stop All Services"
+# Or use the stop script:
+./scripts/stop-all.sh
 ```
 
-### Monitoring
+## 🔧 Configuration
 
-```bash
-./scripts/monitor.sh
-```
+### MCP Server Tools (76 Total)
 
-Shows real-time:
-- GPU utilization (rocm-smi)
-- Loaded models
-- Service health
-- API availability
+The MCP server provides 8 categories of business tools:
 
-### Logs
+- **Inventory Management** (12 tools) - Product tracking, stock levels
+- **Sales & Analytics** (8 tools) - Revenue tracking, reports
+- **Social Media** (12 tools) - Facebook, Instagram integration
+- **Tasks & Calendar** (10 tools) - Task management, scheduling
+- **File System** (13 tools) - File operations with safety validation
+- **Business Operations** (11 tools) - Invoices, expenses, payroll
+- **VIP Clients** (6 tools) - Client relationship management
+- **Universal Tools** (4 tools) - General utilities
 
-```bash
-# All logs
-docker-compose logs -f
+### Ollama Models
 
-# Specific service
-docker-compose logs -f agent-s
-docker-compose logs -f openwebui
+AlphaOmega includes 25+ models for different tasks:
 
-# Local logs
-tail -f logs/agent_actions.log    # Agent-S actions
-tail -f logs/pipeline.log          # Routing decisions
-```
+- **Vision**: llama3.2-vision, llava:34b
+- **Reasoning**: mistral, qwen2.5:14b
+- **Coding**: codellama:13b, deepseek-coder-v2:16b
+- **And many more...**
 
-## Development
+List available models: `ollama list`
 
-### Project Structure
+### Text-to-Speech Voices
+
+Coqui TTS supports:
+- 100+ pre-trained voices across 20+ languages
+- Voice cloning from 5-10 second audio samples
+- 3x real-time generation speed on AMD MI50
+
+## 📁 Project Structure
 
 ```
 AlphaOmega/
-├── pipelines/                   # OpenWebUI pipelines
-│   └── alphaomega_router.py     # Main routing logic
-├── agent_s/                     # Computer use automation
-│   ├── server.py                # FastAPI server
-│   ├── vision/                  # LLaVA integration
-│   ├── actions/                 # Mouse, keyboard, screen
-│   ├── mcp/                     # MCP client
-│   └── safety/                  # Action validation
-├── comfyui_bridge/              # ComfyUI integration
-│   ├── workflows/               # Workflow definitions
-│   └── api.py                   # API wrapper
-├── config/                      # Configuration files
-├── scripts/                     # Management scripts
-└── docker-compose.yml           # Service orchestration
+├── agent_s/              # Computer use automation (in development)
+├── comfyui_bridge/       # Image generation interface (in development)
+├── config/               # Configuration files
+├── docs/                 # Documentation
+│   ├── ARCHITECTURE.md   # System design
+│   ├── DASHBOARD_GUIDE.md # Dashboard usage
+│   └── MCP_INTEGRATION.md # MCP setup guide
+├── logs/                 # Service logs
+├── models/               # AI model storage
+├── pipelines/            # OpenWebUI pipeline integrations
+├── scripts/              # Startup/utility scripts
+├── templates/            # Dashboard HTML templates
+├── tests/                # Test suites
+├── tts/                  # Coqui TTS setup
+├── dashboard.py          # Main dashboard application
+└── requirements.txt      # Python dependencies
 ```
 
-### Adding New Capabilities
+## 🛠️ Development
 
-#### New Pipeline Route
+### Adding a New Service
 
-Edit `pipelines/alphaomega_router.py`:
-
+1. Add service definition to `dashboard.py`:
 ```python
-def _detect_intent(self, message: str) -> str:
-    if "your keyword" in message.lower():
-        return "new_backend"
-    # ... existing code
+"myservice": {
+    "name": "My Service",
+    "port": 9000,
+    "check_url": "http://localhost:9000/health",
+    "start_cmd": f"{PROJECT_DIR}/scripts/start-myservice.sh",
+    "stop_cmd": "pkill -f myservice",
+    "process_name": "myservice",
+    "description": "What my service does",
+    "status": "ready"
+}
 ```
 
-#### New Agent Action
+2. Create startup script in `scripts/start-myservice.sh`
+3. Restart dashboard to see the new service
 
-Create `agent_s/actions/new_action.py`:
-
-```python
-class NewAction:
-    def execute(self, params):
-        # Implementation
-        return {"success": True}
-```
-
-#### New ComfyUI Workflow
-
-Add JSON workflow to `comfyui_bridge/workflows/`.
-
-## Performance
-
-### Benchmarks (MI50 Hardware)
-
-| Task | Model | GPU | Latency | VRAM |
-|------|-------|-----|---------|------|
-| Screen Analysis | LLaVA 34B | 0 | ~3-4s | 14GB |
-| Code Generation | CodeLlama 13B | 1 | ~2-3s | 7GB |
-| Reasoning | Mistral | 1 | ~1-2s | 4GB |
-| Image Gen (SDXL) | ComfyUI | 2 | ~15-20s | 12GB |
-
-### Optimization Tips
-
-1. **Keep models loaded**: `OLLAMA_KEEP_ALIVE=-1`
-2. **Resize screenshots**: Scale to 1280x720 before vision analysis
-3. **Use region analysis**: Crop to relevant areas for faster processing
-4. **Parallel inference**: GPU 0 (vision) + GPU 1 (planning) can run simultaneously
-
-## Troubleshooting
-
-### Ollama Not Detecting GPUs
+### Running Tests
 
 ```bash
-# Check ROCm
-rocm-smi
+# Unit tests
+pytest tests/unit/
 
-# Set MI50 compatibility
+# Integration tests (requires services running)
+pytest tests/integration/
+```
+
+## 🔐 Security & Safety
+
+- **Action Validation**: MCP server validates all file operations
+- **Safe Mode**: Agent-S requires confirmation for risky actions
+- **Process Isolation**: Each service runs in its own process
+- **Local Only**: No external API calls or data transmission
+- **Configurable Permissions**: Fine-grained control over service capabilities
+
+## 🐛 Troubleshooting
+
+### Service Won't Start
+
+```bash
+# Check if port is in use
+lsof -i :8080  # Replace with your service port
+
+# View service logs
+tail -50 logs/[service-name].log
+
+# Verify process is running
+pgrep -f "service-name"
+```
+
+### Dashboard Not Showing Service Status
+
+- Refresh browser (Ctrl+R)
+- Check service health endpoints manually:
+  ```bash
+  curl http://localhost:11434/api/tags     # Ollama
+  curl http://localhost:8002/openapi.json  # MCP
+  curl http://localhost:5002/health        # TTS
+  ```
+
+### GPU Not Detected
+
+```bash
+# Verify ROCm installation
+rocm-smi --showid
+
+# Set GPU override for MI50
 export HSA_OVERRIDE_GFX_VERSION=9.0.0
-
-# Restart Ollama
-pkill ollama
-ollama serve
 ```
 
-### Agent-S Can't Capture Screen
+## 📚 Documentation
 
-```bash
-# Check X11 permissions
-xhost +local:docker
+- **[Dashboard Guide](docs/DASHBOARD_GUIDE.md)** - Complete dashboard usage
+- **[MCP Integration](docs/MCP_INTEGRATION.md)** - MCP server setup
+- **[Architecture](docs/ARCHITECTURE.md)** - System design details
+- **[Services Running](SERVICES_RUNNING.md)** - Current service status
 
-# Or for Wayland
-# Ensure /run/user/1000 is mounted in container
-```
+## 🤝 Contributing
 
-### ComfyUI Out of Memory
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-```bash
-# Reduce image resolution
-# Or allocate more VRAM to GPU 2
-export PYTORCH_HIP_ALLOC_CONF=garbage_collection_threshold:0.8
-```
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## Roadmap
+## 📄 License
 
-- [ ] Advanced action planning with multi-step reasoning
-- [ ] Voice input/output integration
-- [ ] Web browsing automation
-- [ ] Document analysis and processing
-- [ ] Multi-monitor support
-- [ ] Cloud sync for artifacts (optional)
-- [ ] Mobile companion app
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Contributing
+## 🙏 Acknowledgments
 
-This is a private project, but suggestions and improvements are welcome!
+- [OpenWebUI](https://github.com/open-webui/open-webui) - Excellent web interface
+- [Ollama](https://ollama.ai/) - Amazing local LLM platform
+- [Coqui TTS](https://github.com/coqui-ai/TTS) - High-quality open source TTS
+- [AMD ROCm](https://rocm.docs.amd.com/) - GPU compute platform
 
-## License
+## 📧 Contact
 
-Private use only.
-
-## Acknowledgments
-
-Built on top of:
-- [OpenWebUI](https://github.com/open-webui/open-webui)
-- [Ollama](https://ollama.ai)
-- [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
-- [LLaVA](https://llava-vl.github.io/)
-- ROCm and AMD GPU ecosystem
+Project Link: [https://github.com/wspotter/AlphaOmega](https://github.com/wspotter/AlphaOmega)
 
 ---
 
-**AlphaOmega** - Where local AI meets desktop automation. 🔱
+**Made with ❤️ for the local AI community**

@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "title": "Test OpenWebUI integration",
+    "description": "Verify that tasks work with OpenWebUI",
+    "status": "pending",
+    "priority": "high",
+    "tags": [],
+    "created_at": "2025-10-12T23:53:51.785Z"
+  },
+  {
+    "id": 2,
+    "title": "Order more acrylic paint",
+    "description": "Running low on primary colors",
+    "status": "pending",
+    "priority": "medium",
+    "tags": [],
+    "created_at": "2025-10-12T23:54:01.412Z"
+  },
+  {
+    "id": 3,
+    "title": "Reply to customer inquiry",
+    "description": "Sarah Martinez asked about watercolor workshops",
+    "status": "pending",
+    "priority": "high",
+    "tags": [],
+    "created_at": "2025-10-12T23:54:01.429Z"
+  }
+]
