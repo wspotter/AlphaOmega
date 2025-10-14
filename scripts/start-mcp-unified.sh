@@ -41,9 +41,20 @@ fi
 # Create logs directory
 mkdir -p "$PROJECT_DIR/logs"
 
+# Resolve uvx path (snap installs to /snap/bin)
+if command -v uvx >/dev/null 2>&1; then
+    UVX_BIN="$(command -v uvx)"
+elif [ -x "$HOME/.local/bin/uvx" ]; then
+    UVX_BIN="$HOME/.local/bin/uvx"
+else
+    echo -e "${RED}✗ uvx not found${NC}"
+    echo "Install uv (https://github.com/astral-sh/uv) or ensure uvx is on PATH"
+    exit 1
+fi
+
 # Start UNIFIED MCP server on port 8002
 echo -e "${YELLOW}Starting unified MCP server on port 8002...${NC}"
-$HOME/.local/bin/uvx mcpo --port 8002 -- node mcpart/build/index.js \
+$UVX_BIN mcpo --port 8002 -- node mcpart/build/index.js \
   > "$PROJECT_DIR/logs/mcp-unified.log" 2>&1 &
 
 MCP_PID=$!

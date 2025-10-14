@@ -42,6 +42,8 @@ check_service "Ollama" 11434 "http://localhost:11434"
 check_service "MCP Server" 8002 "http://localhost:8002"
 check_service "Agent-S" 8001 "http://localhost:8001"
 check_service "OpenWebUI" 8080 "http://localhost:8080"
+check_service "SearxNG" "${SEARXNG_PORT:-8181}" "http://localhost:${SEARXNG_PORT:-8181}"
+check_service "ComfyUI" "${COMFYUI_PORT:-8188}" "http://localhost:${COMFYUI_PORT:-8188}"
 
 echo ""
 echo "GPU Status:"

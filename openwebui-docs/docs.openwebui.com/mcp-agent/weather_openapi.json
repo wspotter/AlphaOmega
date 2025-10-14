@@ -1,0 +1,200 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Weather Tool Server",
+        "description": "A simple weather lookup tool for OpenWebUI integration",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/": {
+            "get": {
+                "summary": "Root",
+                "description": "Root endpoint with server information",
+                "operationId": "root__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    },
+                                    "type": "object",
+                                    "title": "Response Root  Get"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/get_weather": {
+            "post": {
+                "summary": "Get current weather for a city",
+                "description": "Retrieves current weather information for a specified city. This is a mock implementation for demonstration purposes.",
+                "operationId": "get_weather_get_weather_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/WeatherRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/WeatherResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "summary": "Health Check",
+                "description": "Health check endpoint",
+                "operationId": "health_check_health_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    },
+                                    "type": "object",
+                                    "title": "Response Health Check Health Get"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            },
+            "WeatherRequest": {
+                "properties": {
+                    "city": {
+                        "type": "string",
+                        "title": "City",
+                        "description": "The name of the city to get weather information for",
+                        "example": "New York"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "city"
+                ],
+                "title": "WeatherRequest",
+                "description": "Request model for weather lookup"
+            },
+            "WeatherResponse": {
+                "properties": {
+                    "city": {
+                        "type": "string",
+                        "title": "City",
+                        "description": "The city name"
+                    },
+                    "temperature": {
+                        "type": "string",
+                        "title": "Temperature",
+                        "description": "Current temperature"
+                    },
+                    "conditions": {
+                        "type": "string",
+                        "title": "Conditions",
+                        "description": "Weather conditions"
+                    },
+                    "humidity": {
+                        "type": "string",
+                        "title": "Humidity",
+                        "description": "Humidity percentage"
+                    },
+                    "wind_speed": {
+                        "type": "string",
+                        "title": "Wind Speed",
+                        "description": "Wind speed"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "city",
+                    "temperature",
+                    "conditions",
+                    "humidity",
+                    "wind_speed"
+                ],
+                "title": "WeatherResponse",
+                "description": "Response model for weather data"
+            }
+        }
+    }
+}

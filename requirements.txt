@@ -16,7 +16,7 @@ ollama>=0.1.6
 
 # Computer Use / Automation
 pyautogui>=0.9.54
-python-mss>=9.0.1
+mss>=9.0.1
 Pillow>=10.1.0
 pynput>=1.7.6
 

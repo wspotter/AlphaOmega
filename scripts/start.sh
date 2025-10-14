@@ -52,29 +52,52 @@ else
     echo "Agent-S already running"
 fi
 
-# Start MCP server
+# Start MCP server (unified mcpo proxy)
 echo "Starting MCP server..."
-if ! pgrep -f "node.*build/index.js" > /dev/null; then
-    cd agent_s/mcp/mcpart && npm start > ../../../logs/mcp.log 2>&1 &
-    echo "Started MCP Server on port 8002"
+if ! pgrep -f "mcpo.*8002" > /dev/null; then
+    if ./scripts/start-mcp-unified.sh >/dev/null 2>&1; then
+        echo "Started unified MCP Server on port 8002"
+    else
+        echo "Failed to start MCP Server. Check logs/mcp-unified.log"
+    fi
 else
     echo "MCP Server already running"
 fi
 
-# Start container services (OpenWebUI and ComfyUI only)
+# Start container services (Docker-approved trio only)
 echo "Starting container services..."
-# Note: Running OpenWebUI and ComfyUI directly on host instead of Docker
-echo "OpenWebUI and ComfyUI should be started manually if needed"
+
+# SearxNG runs in Docker by policy
+if command -v docker >/dev/null 2>&1; then
+    if ! ./scripts/start-searxng.sh; then
+        echo "Failed to start SearxNG. Check docker-compose configuration."
+    fi
+else
+    echo "Docker not available; skipping SearxNG startup"
+fi
+
+# ComfyUI also lives in Docker (approved service)
+if command -v docker >/dev/null 2>&1; then
+    if ! ./scripts/start-comfyui.sh; then
+        echo "Failed to start ComfyUI. Check docker-compose configuration."
+    fi
+else
+    echo "Docker not available; skipping ComfyUI startup"
+fi
+
+# Note: OpenWebUI runs on host unless launched separately
+echo "OpenWebUI should be started manually if needed"
 
 echo ""
 echo "✓ AlphaOmega is starting up..."
 echo ""
 echo "Services:"
-echo "  - OpenWebUI: http://localhost:3000"
+echo "  - OpenWebUI: http://localhost:8080"
 echo "  - Agent-S API: http://localhost:8001"
-echo "  - ComfyUI: http://localhost:8188"
+echo "  - ComfyUI: http://localhost:${COMFYUI_PORT:-8188}"
 echo "  - MCP Server: http://localhost:8002"
 echo "  - Coqui TTS API: http://localhost:5002"
+echo "  - SearxNG Meta Search: http://localhost:${SEARXNG_PORT:-8181}"
 echo ""
 echo "Check status: ./scripts/status.sh"
 echo "View logs: tail -f logs/*.log"

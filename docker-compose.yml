@@ -4,6 +4,7 @@
 # ║  Docker is ONLY APPROVED for:                                                ║
 # ║    1. ComfyUI (image generation - complex dependencies)                      ║
 # ║    2. Chatterbox TTS (requires Python 3.11+)                                 ║
+# ║    3. SearxNG (privacy-preserving meta search engine)                        ║
 # ║                                                                               ║
 # ║  ALL OTHER SERVICES RUN LOCALLY:                                             ║
 # ║    - OpenWebUI: Local Python (port 8080)                                     ║
@@ -14,8 +15,6 @@
 # ║                                                                               ║
 # ║  DO NOT add other services to this file!                                     ║
 # ╚══════════════════════════════════════════════════════════════════════════════╝
-
-version: '3.8'
 
 services:
   # ComfyUI - GPU 2 (MI50 #3) - Image Generation
@@ -53,6 +52,19 @@ services:
       - "5003:5003"
     volumes:
       - ./tts:/app
+    restart: unless-stopped
+    networks:
+      - alphaomega-network
+
+  # SearxNG - Privacy-preserving search meta engine
+  # APPROVED: Local meta search for web routing
+  searxng:
+    image: searxng/searxng:latest
+    container_name: alphaomega-searxng
+    ports:
+      - "${SEARXNG_PORT:-8181}:8080"
+    environment:
+      - TZ=${TZ:-UTC}
     restart: unless-stopped
     networks:
       - alphaomega-network

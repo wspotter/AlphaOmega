@@ -4,14 +4,13 @@ AlphaOmega Control Dashboard
 Web-based startup/shutdown interface with real-time status monitoring
 """
 
-import subprocess
 import json
-import time
 import os
-import signal
+import subprocess
+import time
 from pathlib import Path
 from datetime import datetime
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify
 import requests
 import psutil
 
@@ -19,6 +18,16 @@ app = Flask(__name__)
 
 # Configuration
 PROJECT_DIR = Path("/home/stacy/AlphaOmega")
+
+DEFAULT_SEARXNG_HASH = "cbc7656b6966d87f1d3f1cfe0adf59392f9152aa9cf8b9b7a7614016bb58fcc0"
+SEARXNG_CONTAINER_ID = os.getenv("SEARXNG_CONTAINER_ID", "").strip()
+SEARXNG_CONTAINERS = ["alphaomega-searxng", "searxng", DEFAULT_SEARXNG_HASH]
+if SEARXNG_CONTAINER_ID:
+    SEARXNG_CONTAINERS.append(SEARXNG_CONTAINER_ID)
+
+SEARXNG_PORT = int(os.getenv("SEARXNG_PORT", "8181"))
+COMFYUI_PORT = int(os.getenv("COMFYUI_PORT", "8188"))
+COMFYUI_CONTAINERS = ["alphaomega-comfyui", "comfyui"]
 SERVICES = {
     "openwebui": {
         "name": "OpenWebUI",
@@ -41,13 +50,13 @@ SERVICES = {
         "status": "ready"
     },
     "mcp": {
-        "name": "MCP OpenAI Bridge",
+        "name": "MCP OpenAPI Proxy",
         "port": 8002,
-        "check_url": "http://localhost:8002/health",
-        "start_cmd": f"{PROJECT_DIR}/scripts/start-mcp-bridge.sh",
-        "stop_cmd": f"{PROJECT_DIR}/scripts/stop-mcp-bridge.sh",
-        "process_name": "openai_bridge.py",
-        "description": "Bridge exposing 76 MCP tools + OpenAI chat with auto tool calls",
+        "check_url": "http://localhost:8002/openapi.json",
+        "start_cmd": f"{PROJECT_DIR}/scripts/start-mcp-unified.sh",
+        "stop_cmd": f"{PROJECT_DIR}/scripts/stop-mcp-unified.sh",
+        "process_name": "mcpo.*8002",
+        "description": "Unified mcpo proxy exposing 76 MCP tools via OpenAPI",
         "status": "ready"
     },
     "tts": {
@@ -60,15 +69,27 @@ SERVICES = {
         "description": "Professional text-to-speech with voice cloning",
         "status": "ready"
     },
+    "searxng": {
+        "name": "SearxNG",
+        "port": SEARXNG_PORT,
+        "check_url": f"http://localhost:{SEARXNG_PORT}",
+        "start_cmd": f"{PROJECT_DIR}/scripts/start-searxng.sh",
+        "stop_cmd": f"{PROJECT_DIR}/scripts/stop-searxng.sh",
+        "process_name": None,
+        "container_name": SEARXNG_CONTAINERS,
+        "description": "Privacy-preserving meta search engine (Docker)",
+        "status": "ready"
+    },
     "comfyui": {
         "name": "ComfyUI",
-        "port": 8188,
-        "check_url": "http://localhost:8188/system_stats",
-        "start_cmd": None,  # TODO: Add startup script
-        "stop_cmd": "pkill -f 'comfyui.*8188'",
-        "process_name": "comfyui",
-        "description": "Advanced image generation (SDXL, Flux workflows)",
-        "status": "development"
+        "port": COMFYUI_PORT,
+        "check_url": f"http://localhost:{COMFYUI_PORT}/system_stats",
+        "start_cmd": f"{PROJECT_DIR}/scripts/start-comfyui.sh",
+        "stop_cmd": f"{PROJECT_DIR}/scripts/stop-comfyui.sh",
+        "process_name": None,
+        "container_name": COMFYUI_CONTAINERS,
+        "description": "Advanced image generation (SDXL, Flux workflows) [Docker]",
+        "status": "ready"
     },
     "agents": {
         "name": "Agent-S",
@@ -121,9 +142,62 @@ def check_service_status(service_key):
         "status": service.get("status", "ready")
     }
     
-    # Check if process is running
+    # Check if process or container is running
     try:
-        if service["process_name"]:
+        if service.get("container_name"):
+            targets = service["container_name"]
+            if not isinstance(targets, list):
+                targets = [targets]
+            container_id = None
+            for target in targets:
+                result = subprocess.run(
+                    [
+                        "docker",
+                        "ps",
+                        "-q",
+                        "--filter",
+                        f"name={target}"
+                    ],
+                    capture_output=True,
+                    text=True
+                )
+                candidate = result.stdout.strip().split('\n')[0] if result.stdout.strip() else None
+                if candidate:
+                    container_id = candidate
+                    break
+            if container_id:
+                status["container_id"] = container_id
+                try:
+                    state_result = subprocess.run(
+                        [
+                            "docker",
+                            "inspect",
+                            "--format",
+                            "{{json .State}}",
+                            container_id
+                        ],
+                        capture_output=True,
+                        text=True
+                    )
+                    if state_result.returncode == 0 and state_result.stdout.strip():
+                        state_data = json.loads(state_result.stdout.strip())
+                        container_state = state_data.get("Status")
+                        status["container_state"] = container_state
+                        status["running"] = container_state == "running"
+                        status["details"].update({
+                            "state": container_state,
+                            "restart_count": state_data.get("RestartCount"),
+                            "last_exit_code": state_data.get("ExitCode"),
+                            "last_error": state_data.get("Error") or None
+                        })
+                    else:
+                        status["running"] = True
+                except Exception as inspect_error:
+                    status["running"] = True
+                    status["details"]["inspect_error"] = str(inspect_error)
+            else:
+                status["running"] = False
+        elif service.get("process_name"):
             result = subprocess.run(
                 ["pgrep", "-f", service["process_name"]],
                 capture_output=True,
@@ -132,6 +206,8 @@ def check_service_status(service_key):
             status["running"] = result.returncode == 0
             if status["running"]:
                 status["pid"] = result.stdout.strip().split('\n')[0]
+    except FileNotFoundError:
+        status["error"] = "Docker not available"
     except Exception as e:
         status["error"] = str(e)
     

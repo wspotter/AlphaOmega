@@ -377,6 +377,42 @@
                     `;
                 }
                 
+                if (service.details.state) {
+                    detailsHtml += `
+                        <div class="detail-row">
+                            <span class="detail-label">Container State:</span>
+                            <span class="detail-value">${service.details.state}</span>
+                        </div>
+                    `;
+                }
+
+                if (typeof service.details.restart_count === 'number') {
+                    detailsHtml += `
+                        <div class="detail-row">
+                            <span class="detail-label">Restart Count:</span>
+                            <span class="detail-value">${service.details.restart_count}</span>
+                        </div>
+                    `;
+                }
+
+                if (typeof service.details.last_exit_code === 'number' && service.details.last_exit_code !== 0) {
+                    detailsHtml += `
+                        <div class="detail-row">
+                            <span class="detail-label">Last Exit Code:</span>
+                            <span class="detail-value">${service.details.last_exit_code}</span>
+                        </div>
+                    `;
+                }
+
+                if (service.details.last_error) {
+                    detailsHtml += `
+                        <div class="detail-row">
+                            <span class="detail-label">Last Error:</span>
+                            <span class="detail-value">${service.details.last_error}</span>
+                        </div>
+                    `;
+                }
+
                 if (service.details.models) {
                     detailsHtml += `
                         <div class="detail-row">
@@ -421,6 +457,15 @@
                         <div class="detail-row">
                             <span class="detail-label">Process ID:</span>
                             <span class="detail-value">${service.pid}</span>
+                        </div>
+                    `;
+                }
+
+                if (service.container_id) {
+                    detailsHtml += `
+                        <div class="detail-row">
+                            <span class="detail-label">Container ID:</span>
+                            <span class="detail-value">${service.container_id.substring(0, 12)}</span>
                         </div>
                     `;
                 }

@@ -1,0 +1,16 @@
+graph TD
+    A[User in OpenWebUI] -->|1. Sends prompt| B[LLM on Ollama]
+    B -->|2. Decides to call tool| C[OpenAPI Call: /execute_cua_command]
+    C -->|3. HTTP POST request| D[Bridge API Server]
+    D -->|4. Translates to MCP| E[MCP Client Logic]
+    E -->|5. stdio communication| F[CUA MCP Server]
+    F -->|6. Returns result via stdio| E
+    E -->|7. Formats response| D
+    D -->|8. HTTP response| C
+    C -->|9. Returns to LLM| B
+    B -->|10. Generates final answer| A
+    
+    style D fill:#f9f,stroke:#333,stroke-width:4px
+    style E fill:#bbf,stroke:#333,stroke-width:2px
+    style F fill:#bfb,stroke:#333,stroke-width:2px
+

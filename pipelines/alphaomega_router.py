@@ -4,11 +4,9 @@ Routes requests intelligently to: Ollama (vision/reasoning/code), ComfyUI, Agent
 """
 from typing import Optional, List, Dict, Any, AsyncGenerator
 import json
-import re
 import os
 from pydantic import BaseModel, Field
 import httpx
-import asyncio
 from datetime import datetime
 
 
@@ -17,36 +15,45 @@ class Pipeline:
     
     class Valves(BaseModel):
         """Pipeline configuration - editable from OpenWebUI"""
+        _OLLAMA_VISION_DEFAULT = os.getenv("OLLAMA_VISION_HOST", "http://localhost:11434")
+        _OLLAMA_REASON_DEFAULT = os.getenv("OLLAMA_REASONING_HOST", _OLLAMA_VISION_DEFAULT)
+        _COMFYUI_DEFAULT = os.getenv("COMFYUI_HOST", "http://localhost:8188")
+        _AGENT_S_DEFAULT = os.getenv("AGENT_S_HOST", "http://localhost:8001")
+        _MCP_DEFAULT = os.getenv("MCP_HOST", "http://localhost:8002")
+        _VISION_MODEL_DEFAULT = os.getenv("VISION_MODEL", "devstral-vision")
+        _REASONING_MODEL_DEFAULT = os.getenv("REASONING_MODEL", "llama3-8b")
+        _CODE_MODEL_DEFAULT = os.getenv("CODE_MODEL", "phind-codellama")
+
         OLLAMA_VISION_HOST: str = Field(
-            default="http://localhost:11434",
+            default=_OLLAMA_VISION_DEFAULT,
             description="Ollama endpoint (GPU1 MI50 - LLaVA, Mistral, CodeLlama)"
         )
         OLLAMA_REASONING_HOST: str = Field(
-            default="http://localhost:11434",
+            default=_OLLAMA_REASON_DEFAULT,
             description="Ollama endpoint (same as vision - single instance)"
         )
         COMFYUI_HOST: str = Field(
-            default="http://localhost:8188",
+            default=_COMFYUI_DEFAULT,
             description="ComfyUI endpoint (GPU2 MI50 - Image generation)"
         )
         AGENT_S_HOST: str = Field(
-            default="http://localhost:8001",
+            default=_AGENT_S_DEFAULT,
             description="Agent-S endpoint (Computer use)"
         )
         MCP_HOST: str = Field(
-            default="http://localhost:8002",
+            default=_MCP_DEFAULT,
             description="MCP server endpoint (Artifacts, memory, files)"
         )
         VISION_MODEL: str = Field(
-            default="devstral-vision",
+            default=_VISION_MODEL_DEFAULT,
             description="Vision model for screen analysis"
         )
         REASONING_MODEL: str = Field(
-            default="llama3-8b",
+            default=_REASONING_MODEL_DEFAULT,
             description="Reasoning model for planning"
         )
         CODE_MODEL: str = Field(
-            default="phind-codellama",
+            default=_CODE_MODEL_DEFAULT,
             description="Code generation model"
         )
         ENABLE_LOGGING: bool = Field(
@@ -275,7 +282,7 @@ class Pipeline:
                     image_url = result.get("image_url", "")
                     
                     if image_url:
-                        yield f"✅ Image generated successfully!\n\n"
+                        yield "✅ Image generated successfully!\n\n"
                         yield f"Prompt: {prompt}\n\n"
                         yield f"![Generated Image]({image_url})"
                     else:
