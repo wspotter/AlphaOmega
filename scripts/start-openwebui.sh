@@ -56,9 +56,11 @@ fi
 export OLLAMA_BASE_URL="http://localhost:11434"
 export WEBUI_AUTH=false  # Disable auth for local use
 export DATA_DIR="$PROJECT_ROOT/openwebui_data"
+export PIPELINES_DIR="$PROJECT_ROOT/pipelines"  # Enable pipeline support
 
 # Ensure data directory exists
 mkdir -p "$DATA_DIR"
+mkdir -p "$PIPELINES_DIR"
 
 # Start OpenWebUI
 cd "$PROJECT_ROOT"

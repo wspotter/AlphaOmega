@@ -6,8 +6,11 @@
 
 Make sure you have:
 - AMD MI50 GPUs with ROCm installed
-- Docker and Docker Compose
+- Docker (ONLY for ComfyUI and Chatterbox TTS)
+- Python 3.10+ and Node.js 18+ (for local services)
 - At least 50GB free disk space (for models)
+
+**Important**: See `DOCKER_POLICY.md` - only ComfyUI and Chatterbox TTS use Docker. All other services run locally.
 
 ### 2. Clone and Setup
 
@@ -16,16 +19,17 @@ Make sure you have:
 git clone https://github.com/wspotter/AlphaOmega.git
 cd AlphaOmega
 
-# Run automated setup
+# Run automated setup (installs deps, pulls models, builds Docker images)
 ./scripts/setup.sh
 ```
 
 The setup script will:
-- ✅ Check system requirements (ROCm, Docker)
+- ✅ Check system requirements (ROCm, Python, Node.js)
 - ✅ Create directory structure
-- ✅ Install Python dependencies
+- ✅ Install local Python dependencies (OpenWebUI, Agent-S)
+- ✅ Install Node.js dependencies (mcpart)
 - ✅ Pull AI models (llava:34b, mistral, codellama)
-- ✅ Build Docker containers
+- ✅ Build Docker containers (ComfyUI, Chatterbox only)
 
 **Note**: Model downloads are large (~30GB total) and may take 15-30 minutes depending on your internet connection.
 
@@ -43,9 +47,8 @@ nano .env
 
 ```bash
 # GPU assignments (check with: rocm-smi --showid)
-OLLAMA_GPU_0=0          # Vision model
-OLLAMA_GPU_1=1          # Reasoning/code
-COMFYUI_GPU=2           # Image generation
+OLLAMA_GPU_VISION=1     # Vision/reasoning model (MI50 #1)
+COMFYUI_GPU=2           # Image generation (MI50 #2) - DOCKER
 
 # Safety settings
 AGENT_SAFE_MODE=true    # Recommended for first use
@@ -139,12 +142,23 @@ You should see:
 ### Check Service Health
 
 ```bash
-# All services status
-docker-compose ps
+# Check local services
+curl http://localhost:8080                  # OpenWebUI
+curl http://localhost:8001/health           # Agent-S
+curl http://localhost:11434/api/tags        # Ollama
+curl http://localhost:3000/health           # mcpart
+curl http://localhost:8002/health           # mcpo
 
-# Check specific service logs
-docker-compose logs agent-s
-docker-compose logs openwebui
+# Check Docker services (ComfyUI and Chatterbox only)
+docker ps
+curl http://localhost:8188/system_stats     # ComfyUI
+curl http://localhost:5003/health           # Chatterbox TTS
+
+# Check logs
+tail -f logs/openwebui.log
+tail -f logs/agent_actions.log
+docker logs alphaomega-comfyui
+docker logs alphaomega-chatterbox
 ```
 
 ### View Action Logs
@@ -162,12 +176,20 @@ tail -f logs/pipeline.log
 ### Services won't start
 
 ```bash
-# Check Docker
+# Check ROCm
+rocm-smi
+
+# Check Docker (for ComfyUI/Chatterbox only)
 docker --version
-docker-compose --version
+docker ps
+
+# Check local services
+ps aux | grep ollama
+ps aux | grep open-webui
+ps aux | grep "python.*agent_s"
 
 # Check if ports are in use
-sudo netstat -tulpn | grep -E '(3000|11434|11435|8188|8001|8002)'
+sudo netstat -tulpn | grep -E '(8080|11434|11435|8188|8001|3000|8002|5003)'
 
 # Restart everything
 ./scripts/stop.sh

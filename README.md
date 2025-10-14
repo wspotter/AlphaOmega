@@ -30,9 +30,20 @@
 ## 🎯 Philosophy
 
 - **Privacy-First**: Everything runs locally - no cloud APIs, no data leaving your machine
-- **No Docker Dependencies**: Pure local execution for maximum control
+- **Local-First**: Most services run directly on the host (no Docker overhead)
 - **AMD GPU Optimized**: Built for AMD MI50 GPUs with ROCm support
 - **Production-Ready**: Complete with monitoring, logging, and safety validators
+
+## ⚠️ Docker Policy
+
+**Docker is ONLY used for:**
+1. **ComfyUI** - Complex image generation dependencies
+2. **Chatterbox TTS** - Requires Python 3.11+ environment
+
+**All other services run locally:**
+- OpenWebUI, Ollama, Agent-S, mcpart, mcpo all run as native processes
+
+See [`DOCKER_POLICY.md`](DOCKER_POLICY.md) for the complete policy and reasoning.
 
 ## 🚀 Quick Start
 
@@ -45,9 +56,11 @@
 
 **Software:**
 - Linux (Ubuntu 22.04+ recommended)
-- Python 3.12+
+- Python 3.10+
 - ROCm 6.0+ ([installation guide](https://rocm.docs.amd.com/))
 - Node.js 18+ (for MCP server)
+- Docker (ONLY for ComfyUI and Chatterbox TTS)
+```
 
 ### Installation
 

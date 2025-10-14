@@ -1,0 +1,44 @@
+Open WebUI uses a proxy server called mcpo to translate requests between its web interface and Model Context Protocol (MCP) servers. This crucial middleware makes MCP tools, which often communicate via standard input/output (stdio), accessible to Open WebUI, which requires a standard OpenAPI-compatible HTTP format.
+The communication workflow
+This process involves three main components that work together to enable tool usage:
+The MCP Server: This is a separate application that runs a specific tool, such as a weather checker, a code execution environment, or a file-reading tool. It adheres to the Model Context Protocol but often uses the stdio transport, which is incompatible with web clients.
+The mcpo (MCP-to-OpenAPI) Proxy: This lightweight server, developed by the Open WebUI team, acts as a translator. It wraps a command for a local MCP server and exposes it as a secure, standard OpenAPI HTTP server.
+Open WebUI: The web-based chat interface interacts with the proxy server over standard HTTP. It does not communicate directly with the MCP server.
+How the process works step-by-step
+The user initiates a request. In the Open WebUI chat, a user prompts the AI with a command like, "What is the current date and time?".
+The Large Language Model (LLM) decides to use a tool. The AI model, having been given access to a "Time Tool," determines that this tool is necessary to answer the user's request. It decides which function to call and what parameters to pass.
+Open WebUI sends the request to the mcpo proxy. The Open WebUI front-end sends an HTTP request to the mcpo proxy's specific endpoint for that tool (e.g., http://localhost:8000/time).
+The proxy executes the MCP server. The mcpo proxy receives the HTTP request and translates it into a command for the underlying MCP tool. It runs the tool, communicating with it over the stdio protocol.
+The MCP server performs the action. The tool (e.g., the Time Tool) runs and gets the current date and time.
+The proxy returns the result. The mcpo proxy receives the result from the MCP tool and wraps it in a standard HTTP response.
+Open WebUI receives the tool's response. Open WebUI processes the response from the mcpo proxy and passes the information back to the LLM.
+The LLM generates the final response. The LLM uses the information provided by the tool to construct a complete and accurate answer for the user, which is then displayed in the chat interface.
+Key benefits of this architecture
+Interoperability and standardization: Using the OpenAPI standard allows tools written for other platforms to be easily integrated into Open WebUI via the mcpo proxy, following a "develop once, use everywhere" philosophy.
+Enhanced security: The mcpo proxy acts as a security gateway. It prevents the direct, insecure stdio communication from being exposed to the network, enforcing standard web security practices like authentication and rate limiting.
+Greater flexibility: This setup allows you to grant powerful capabilities to local, offline LLMs by safely exposing tools that interact with a machine's file system, environment, and other native features.
+
+
+also
+
+Besides using MCP tool servers via a proxy, Open WebUI can integrate with external tools that are compatible with the OpenAPI specification. This provides a standardized and flexible way to connect a wide variety of services. Open WebUI also has its own plugin framework for "Pipe Functions" and can connect with any LLM server that offers an OpenAI-compatible API.
+OpenAPI tool servers
+Any tool server that exposes its capabilities as a standard RESTful API can be integrated with Open WebUI, as long as the API is defined using the OpenAPI standard.
+The OpenAPI specification is a widely-used standard for documenting and interacting with REST APIs.
+The mcpo proxy mentioned in the previous answer translates MCP servers to be compatible with this standard, but tool servers can be built natively using frameworks like FastAPI.
+A user can simply add the tool server's URL in the Open WebUI settings to begin using it.
+The Open WebUI team provides a repository of reference OpenAPI tool server implementations for common functions like accessing a filesystem, running a Git server, or querying a SQL database.
+Pipe functions (native Python plugins)
+For services that do not use an OpenAI-compatible API, Open WebUI offers a native "Pipe Functions" framework.
+Purpose: This framework allows users to create plugins for custom logic, even for services like Anthropic, Google Search, or Home Assistant.
+How it works: Pipe Functions are Python scripts that can be run directly from within Open WebUI.
+Built-in editor: A built-in code editor in the "Tools and Functions" workspace allows developers to seamlessly create and integrate new functions.
+OpenAI-compatible servers
+In addition to tools, Open WebUI can integrate with any LLM server that implements an OpenAI-compatible API, including locally or remotely hosted models. The server acts as a drop-in replacement for OpenAI's official API, allowing Open WebUI to manage conversations with any compliant model.
+Practical examples of integrated tools
+Through these different integration methods, Open WebUI supports a wide range of external tools, such as:
+Web Search: Integrates with various external search engine APIs to provide up-to-date web information.
+Web Browsing: Can read and integrate content from websites into a chat.
+Image Generation: Enables AI-powered image generation capabilities.
+External RAG (Retrieval-Augmented Generation): Connects to external RAG pipelines and databases for accessing custom knowledge bases.
+SQL Chat: Allows for natural language interaction and query generation for databases.

@@ -75,11 +75,38 @@ class Pipeline:
         """Detect user intent from message content"""
         message_lower = message.lower()
         
-        # Image generation keywords
+        # MCP tool keywords (check FIRST before image keywords to avoid false positives)
+        mcp_keywords = [
+            # Artifacts & Memory
+            "create artifact", "save artifact", "artifact",
+            "save to memory", "remember this", "store this",
+            # File operations
+            "read file", "write file", "list files", "file operation",
+            # Tasks
+            "task", "todo", "to-do", "list tasks", "my tasks", "create task", "add task",
+            # Inventory (check before 'paint' in image keywords)
+            "inventory", "stock", "low stock", "check inventory", "in stock", "out of stock",
+            # Customers
+            "customer", "add customer", "list customers", "vip", "client", "show customers",
+            # Notes
+            "note", "notes", "search notes", "add note", "create note", "my notes",
+            # Sales
+            "sale", "sales", "revenue", "record sale", "sales report", "last month",
+            # Expenses
+            "expense", "expenses", "cost", "spending",
+            # Business operations
+            "invoice", "appointment", "calendar", "schedule", "meeting",
+            # Social media
+            "facebook", "instagram", "post to", "social media", "tweet"
+        ]
+        if any(kw in message_lower for kw in mcp_keywords):
+            return "mcp"
+        
+        # Image generation keywords (check AFTER MCP to avoid conflicts)
         image_keywords = [
-            "generate image", "create image", "draw", "render", "paint",
-            "picture of", "illustration", "artwork", "sdxl", "flux",
-            "generate a photo", "make an image", "visualize"
+            "generate image", "create image", "draw a", "render a", "painting of",
+            "picture of", "illustration of", "artwork of", "sdxl", "flux",
+            "generate a photo", "make an image", "visualize this", "art of"
         ]
         if any(kw in message_lower for kw in image_keywords):
             return "image"
@@ -93,15 +120,6 @@ class Pipeline:
         ]
         if any(kw in message_lower for kw in computer_keywords):
             return "agent"
-        
-        # MCP tool keywords
-        mcp_keywords = [
-            "create artifact", "save artifact", "artifact",
-            "save to memory", "remember this", "store this",
-            "read file", "write file", "list files", "file operation"
-        ]
-        if any(kw in message_lower for kw in mcp_keywords):
-            return "mcp"
         
         # Vision analysis keywords (but not computer use)
         vision_keywords = [
@@ -331,35 +349,197 @@ class Pipeline:
         """Route to MCP server for tool use"""
         
         try:
+            # Detect which tool to call
+            tool_name, params = self._detect_mcp_tool(message)
+            
+            if not tool_name:
+                yield "I can help you with tasks, inventory, customers, notes, and more. What would you like to do?"
+                return
+            
             if event_emitter:
                 await event_emitter({
                     "type": "status",
-                    "data": {"description": "Executing MCP tool...", "done": False}
+                    "data": {"description": f"Calling {tool_name}...", "done": False}
                 })
             
+            # Call MCP tool
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    f"{self.valves.MCP_HOST}/execute",
-                    json={
-                        "prompt": message,
-                        "messages": messages
-                    },
+                    f"{self.valves.MCP_HOST}/{tool_name}",
+                    json=params,
+                    headers={"Content-Type": "application/json"},
                     timeout=30.0
                 )
                 
                 if response.status_code == 200:
                     result = response.json()
-                    yield result.get("response", "MCP action completed")
                     
-                    if "artifact_url" in result:
-                        yield f"\n\n📦 Artifact created: {result['artifact_url']}"
+                    # Format response nicely
+                    formatted = self._format_mcp_response(tool_name, result)
+                    yield formatted
+                    
+                elif response.status_code == 422:
+                    yield f"⚠️ Invalid parameters for {tool_name}: {response.text}"
                 else:
-                    yield f"MCP error: {response.status_code}"
+                    yield f"⚠️ MCP error ({response.status_code}): {response.text}"
                     
         except httpx.ConnectError:
-            yield "⚠️ MCP server is not available."
+            yield "⚠️ MCP server is not available. Please ensure MCP server is running on port 8002."
         except Exception as e:
             yield f"Error executing MCP tool: {str(e)}"
+    
+    def _detect_mcp_tool(self, message: str) -> tuple:
+        """Detect which MCP tool to call and extract parameters"""
+        message_lower = message.lower()
+        
+        # Task management
+        if "list task" in message_lower or "my task" in message_lower or "what task" in message_lower or "show task" in message_lower:
+            return ("list_tasks", {})
+        if "create task" in message_lower or "add task" in message_lower or "new task" in message_lower:
+            # Extract task details (simple version)
+            task_text = message.split("task")[-1].strip().strip(":").strip()
+            return ("create_task", {
+                "title": task_text,
+                "priority": "medium"
+            })
+        
+        # Inventory
+        if "inventory" in message_lower or "stock" in message_lower:
+            if "low stock" in message_lower:
+                return ("get_low_stock_items", {})
+            else:
+                # Extract search term
+                search = ""
+                if "for" in message_lower:
+                    search = message_lower.split("for")[-1].strip()
+                return ("check_inventory", {"product_name": search} if search else {})
+        
+        # Customers
+        if "customer" in message_lower or "client" in message_lower:
+            if "list" in message_lower or "show" in message_lower or "all" in message_lower:
+                return ("list_customers", {})
+            elif "add" in message_lower:
+                return ("add_customer", {})
+            elif "vip" in message_lower:
+                return ("list_customers", {})  # Can filter VIP in future
+            
+        # Notes
+        if "create" in message_lower and "note" in message_lower:
+            # Extract note content
+            note_text = message_lower.split("note")[-1].strip().strip(":").strip()
+            return ("create_note", {"title": "Note", "content": note_text})
+        if "add" in message_lower and "note" in message_lower:
+            note_text = message_lower.split("note")[-1].strip().strip(":").strip()
+            return ("create_note", {"title": "Note", "content": note_text})
+        if "note" in message_lower or "my note" in message_lower:
+            if "search" in message_lower:
+                query = message_lower.replace("search", "").replace("note", "").strip()
+                return ("search_notes", {"query": query})
+            else:
+                return ("list_notes", {})
+        
+        # Sales
+        if "sale" in message_lower or "sales" in message_lower or "revenue" in message_lower:
+            if "report" in message_lower or "last" in message_lower or "month" in message_lower:
+                return ("get_sales_report", {})
+            elif "record" in message_lower or "add" in message_lower:
+                return ("record_sale", {})
+            else:
+                return ("get_sales_report", {})
+        
+        # Expenses
+        if "expense" in message_lower or "cost" in message_lower or "spending" in message_lower:
+            if "list" in message_lower or "show" in message_lower:
+                return ("list_expenses", {})
+            elif "add" in message_lower:
+                # Extract expense details
+                expense_text = message_lower.split(":")[-1].strip() if ":" in message_lower else ""
+                return ("add_expense", {"description": expense_text})
+            else:
+                return ("list_expenses", {})
+        
+        # Appointments/Calendar
+        if "appointment" in message_lower or "schedule" in message_lower or "calendar" in message_lower or "meeting" in message_lower:
+            if "list" in message_lower or "show" in message_lower or "my" in message_lower:
+                return ("list_appointments", {})
+            elif "add" in message_lower or "create" in message_lower or "schedule" in message_lower:
+                return ("create_appointment", {})
+            else:
+                return ("list_appointments", {})
+        
+        # Social Media - Instagram
+        if "instagram" in message_lower:
+            if "post" in message_lower:
+                content = message_lower.split(":")[-1].strip() if ":" in message_lower else ""
+                return ("post_to_instagram", {"content": content})
+            elif "message" in message_lower or "dm" in message_lower:
+                return ("get_instagram_messages", {})
+            elif "notification" in message_lower:
+                return ("get_instagram_notifications", {})
+            else:
+                return ("get_instagram_notifications", {})
+        
+        # Social Media - Facebook
+        if "facebook" in message_lower:
+            if "post" in message_lower:
+                content = message_lower.split(":")[-1].strip() if ":" in message_lower else ""
+                return ("post_to_facebook", {"content": content})
+            elif "message" in message_lower:
+                return ("get_facebook_messages", {})
+            else:
+                return ("get_facebook_notifications", {})
+        
+        # Default - no specific tool matched
+        return (None, {})
+    
+    def _format_mcp_response(self, tool_name: str, result: Any) -> str:
+        """Format MCP tool responses for chat"""
+        
+        # Handle list results
+        if isinstance(result, list):
+            if not result:
+                return f"No {tool_name.replace('_', ' ')} found."
+            
+            # Format tasks
+            if tool_name == "list_tasks":
+                lines = ["**Your Tasks:**\n"]
+                for task in result:
+                    priority = task.get("priority", "medium")
+                    emoji = "🔴" if priority == "high" else "🟡" if priority == "medium" else "🟢"
+                    status_emoji = "✅" if task.get("status") == "completed" else "⏳"
+                    lines.append(f"{status_emoji} {emoji} **{task.get('title')}** - {task.get('description', '')}")
+                return "\n".join(lines)
+            
+            # Format inventory
+            elif tool_name == "check_inventory" or tool_name == "get_low_stock_items":
+                lines = ["**Inventory:**\n"]
+                for item in result:
+                    stock = item.get("quantity", 0)
+                    low_stock_icon = "⚠️" if stock < item.get("reorder_point", 10) else ""
+                    lines.append(f"{low_stock_icon} **{item.get('name')}** - {stock} in stock")
+                return "\n".join(lines)
+            
+            # Format customers
+            elif tool_name == "list_customers":
+                lines = ["**Customers:**\n"]
+                for customer in result[:10]:  # Limit to 10
+                    lines.append(f"• **{customer.get('name')}** - {customer.get('email', 'no email')}")
+                if len(result) > 10:
+                    lines.append(f"\n...and {len(result)-10} more")
+                return "\n".join(lines)
+            
+            # Generic list formatting
+            else:
+                return json.dumps(result, indent=2)
+        
+        # Handle object results
+        elif isinstance(result, dict):
+            if "success" in result or "status" in result:
+                return f"✅ {result.get('message', 'Operation completed successfully')}"
+            return json.dumps(result, indent=2)
+        
+        # Handle string results
+        return str(result)
     
     def _extract_image_prompt(self, message: str) -> str:
         """Extract clean prompt from image generation request"""

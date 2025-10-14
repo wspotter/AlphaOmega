@@ -1,29 +1,25 @@
-# NOTE: This file is kept for reference but NOT USED in host-only mode
-# All services run directly on the host system
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                         DOCKER POLICY - READ THIS                            ║
+# ╠══════════════════════════════════════════════════════════════════════════════╣
+# ║  Docker is ONLY APPROVED for:                                                ║
+# ║    1. ComfyUI (image generation - complex dependencies)                      ║
+# ║    2. Chatterbox TTS (requires Python 3.11+)                                 ║
+# ║                                                                               ║
+# ║  ALL OTHER SERVICES RUN LOCALLY:                                             ║
+# ║    - OpenWebUI: Local Python (port 8080)                                     ║
+# ║    - Ollama: Local binary (ports 11434, 11435)                               ║
+# ║    - Agent-S: Local Python (port 8001)                                       ║
+# ║    - mcpart: Local Node.js (port 3000)                                       ║
+# ║    - mcpo: Local Go binary (port 8002)                                       ║
+# ║                                                                               ║
+# ║  DO NOT add other services to this file!                                     ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
 version: '3.8'
 
 services:
-  # OpenWebUI - Main User Interface
-  openwebui:
-    image: ghcr.io/open-webui/open-webui:main
-    container_name: alphaomega-openwebui
-    ports:
-      - "${OPENWEBUI_PORT:-3000}:8080"
-    volumes:
-      - ./openwebui_data:/app/backend/data
-      - ./pipelines:/app/backend/pipelines
-    environment:
-      - OLLAMA_BASE_URLS=http://host.docker.internal:11434;http://host.docker.internal:11435
-      - COMFYUI_BASE_URL=http://comfyui:8188
-      - ENABLE_OLLAMA_API=true
-      - WEBUI_AUTH=${WEBUI_AUTH:-false}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: unless-stopped
-    networks:
-      - alphaomega-network
-
   # ComfyUI - GPU 2 (MI50 #3) - Image Generation
+  # APPROVED: Complex dependencies, ROCm integration
   comfyui:
     build:
       context: ./comfyui_bridge
@@ -46,15 +42,26 @@ services:
     networks:
       - alphaomega-network
 
+  # Chatterbox TTS - High-quality local text-to-speech
+  # APPROVED: Requires Python 3.11+, complex audio dependencies
+  chatterbox:
+    build:
+      context: ./tts
+      dockerfile: Dockerfile.chatterbox
+    container_name: alphaomega-chatterbox
+    ports:
+      - "5003:5003"
+    volumes:
+      - ./tts:/app
+    restart: unless-stopped
+    networks:
+      - alphaomega-network
+
 networks:
   alphaomega-network:
     driver: bridge
     name: alphaomega-network
 
 volumes:
-  openwebui_data:
-    driver: local
-  ollama_models:
-    driver: local
   comfyui_models:
     driver: local

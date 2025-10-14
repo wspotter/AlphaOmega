@@ -26,11 +26,16 @@ pkill -f "mcpo.*800[0-9]" 2>/dev/null || true
 sleep 2
 
 # Ensure build directory exists
-if [ ! -d "$PROJECT_DIR/agent_s/mcp/mcpart/build" ]; then
-    echo -e "${YELLOW}Building mcpart...${NC}"
-    cd "$PROJECT_DIR/agent_s/mcp/mcpart"
-    npm run build
-    cd "$PROJECT_DIR"
+if [ ! -d "$PROJECT_DIR/mcpart/build" ]; then
+    echo -e "${RED}✗ mcpart build directory not found${NC}"
+    echo "Run: cd $PROJECT_DIR/mcpart && npm install && npm run build"
+    exit 1
+fi
+
+# Verify index.js exists
+if [ ! -f "$PROJECT_DIR/mcpart/build/index.js" ]; then
+    echo -e "${RED}✗ mcpart/build/index.js not found${NC}"
+    exit 1
 fi
 
 # Create logs directory
@@ -38,7 +43,7 @@ mkdir -p "$PROJECT_DIR/logs"
 
 # Start UNIFIED MCP server on port 8002
 echo -e "${YELLOW}Starting unified MCP server on port 8002...${NC}"
-$HOME/.local/bin/uvx mcpo --port 8002 -- node agent_s/mcp/mcpart/build/index.js \
+$HOME/.local/bin/uvx mcpo --port 8002 -- node mcpart/build/index.js \
   > "$PROJECT_DIR/logs/mcp-unified.log" 2>&1 &
 
 MCP_PID=$!
