@@ -52,11 +52,11 @@ async def start_mcp_server():
     """Start the MCP server as subprocess"""
     global mcp_process
     
-    mcp_path = "/home/stacy/AlphaOmega/agent_s/mcp/mcpart/build/index.js"
+    mcp_path = "/home/stacy/AlphaOmega/mcpart/build/index.js"
     
     if not os.path.exists(mcp_path):
         logger.error(f"MCP server not found at {mcp_path}")
-        logger.error("Run: cd /home/stacy/AlphaOmega/agent_s/mcp/mcpart && npm run build")
+        logger.error("Run: cd /home/stacy/AlphaOmega/mcpart && npm run build")
         return
     
     try:

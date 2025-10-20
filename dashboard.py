@@ -28,6 +28,7 @@ if SEARXNG_CONTAINER_ID:
 SEARXNG_PORT = int(os.getenv("SEARXNG_PORT", "8181"))
 COMFYUI_PORT = int(os.getenv("COMFYUI_PORT", "8188"))
 COMFYUI_CONTAINERS = ["alphaomega-comfyui", "comfyui"]
+CHATTERBOX_CONTAINER = ["alphaomega-chatterbox"]
 SERVICES = {
     "openwebui": {
         "name": "OpenWebUI",
@@ -63,8 +64,8 @@ SERVICES = {
         "name": "Coqui TTS",
         "port": 5002,
         "check_url": "http://localhost:5002/health",
-        "start_cmd": f"{PROJECT_DIR}/tts/start_coqui_api.sh",
-        "stop_cmd": f"{PROJECT_DIR}/tts/stop_coqui_api.sh",
+        "start_cmd": f"{PROJECT_DIR}/scripts/start-tts.sh",
+        "stop_cmd": f"{PROJECT_DIR}/scripts/stop-tts.sh",
         "process_name": "coqui_api.py",
         "description": "Professional text-to-speech with voice cloning",
         "status": "ready"
@@ -161,6 +162,11 @@ def check_service_status(service_key):
                     capture_output=True,
                     text=True
                 )
+
+                if result.returncode != 0:
+                    status["details"]["docker_error"] = result.stderr.strip()
+                    continue
+
                 candidate = result.stdout.strip().split('\n')[0] if result.stdout.strip() else None
                 if candidate:
                     container_id = candidate
@@ -216,34 +222,27 @@ def check_service_status(service_key):
         try:
             response = requests.get(service["check_url"], timeout=2)
             status["responsive"] = response.status_code == 200
-            
-            # Get service-specific details
-            if service_key == "ollama" and status["responsive"]:
-                data = response.json()
-                status["details"]["models"] = len(data.get("models", []))
-                
-            elif service_key == "mcp" and status["responsive"]:
-                data = response.json()
-                status["details"]["tools"] = len(data.get("paths", {}))
-                
-            elif service_key == "tts" and status["responsive"]:
-                data = response.json()
-                status["details"]["status"] = data.get("status", "unknown")
-                # Try to fetch Coqui voices
+
+            data = None
+            if status["responsive"] and response.headers.get("content-type", "").startswith("application/json"):
                 try:
-                    v = requests.get("http://localhost:5002/v1/voices", timeout=2).json()
-                    voices = [item.get("id") for item in v.get("voices", [])]
-                    status["details"]["voices"] = voices
-                    # Curated downloadable names (for user convenience)
-                    status["details"]["downloadable"] = [
-                        "ljspeech",
-                        "vctk",
-                        "jenny",
-                        "custom"
-                    ]
-                except Exception:
-                    pass
-                
+                    data = response.json()
+                except ValueError:
+                    data = None
+
+            # Get service-specific details
+            if service_key == "ollama" and status["responsive"] and data:
+                status["details"]["models"] = len(data.get("models", []))
+
+            elif service_key == "mcp" and status["responsive"] and data:
+                status["details"]["tools"] = len(data.get("paths", {}))
+
+            elif service_key == "tts" and status["responsive"]:
+                if data:
+                    status["details"]["health"] = data
+                else:
+                    status["details"]["raw"] = response.text.strip()[:200]
+
         except Exception as e:
             status["responsive"] = False
             status["error"] = str(e)

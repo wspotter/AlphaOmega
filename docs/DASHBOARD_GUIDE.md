@@ -37,7 +37,7 @@ The dashboard displays real-time system statistics:
 
 ### 3. Service Management
 Each service card provides:
-- **Service Name**: Ollama, MCP Server, or Coqui TTS
+- **Service Name**: Ollama, MCP Server, or Chatterbox TTS
 - **Description**: What the service does
 - **Port Number**: Which port the service runs on
 - **Status Badge**: Color-coded visual indicator
@@ -84,10 +84,10 @@ When services are running, you can click "🔗 Open Service" to access:
 - **Documentation**: http://localhost:8002/openapi.json
 - **Tool Count**: `curl http://localhost:8002/openapi.json | jq '.paths | keys | length'`
 
-### Coqui TTS
-- **URL**: http://localhost:5002/health
+### Chatterbox TTS
+- **URL**: http://localhost:5003/health
 - **Purpose**: High-quality text-to-speech with voice cloning
-- **Test**: `curl http://localhost:5002/health`
+- **Test**: `curl http://localhost:5003/health`
 
 ## Dashboard API Endpoints
 
@@ -207,7 +207,7 @@ curl http://localhost:11434/api/tags
 curl http://localhost:8002/openapi.json
 
 # Test TTS
-curl http://localhost:5002/health
+curl http://localhost:5003/health
 ```
 
 If curl fails but process exists, restart the service.
@@ -252,7 +252,7 @@ Dashboard uses:
 The dashboard complements existing CLI tools:
 - `./scripts/check-services.sh` - Quick status check
 - `./scripts/start-mcp-unified.sh` - Start MCP server
-- `./tts/start_coqui_api.sh` - Start TTS service
+- `./scripts/start-tts.sh` - Start Chatterbox TTS service
 
 ### OpenWebUI Integration
 When services are running via dashboard, OpenWebUI can connect to:

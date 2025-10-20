@@ -103,7 +103,7 @@ async def startup_event():
     """Start MCP server and cache tools"""
     global mcp_process, tools_cache
     
-    mcp_path = "/home/stacy/AlphaOmega/agent_s/mcp/mcpart/build/index.js"
+    mcp_path = "/home/stacy/AlphaOmega/mcpart/build/index.js"
     
     if not os.path.exists(mcp_path):
         logger.error(f"MCP server not found at {mcp_path}")

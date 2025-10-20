@@ -38,11 +38,11 @@ cp "$PROJECT_DIR/QUICK_REFERENCE.txt" "$KNOWLEDGE_DIR/" 2>/dev/null
 cp "$PROJECT_DIR/KNOWLEDGE_BASE_SETUP.md" "$KNOWLEDGE_DIR/" 2>/dev/null
 
 # MCPart documentation
-if [ -d "$PROJECT_DIR/agent_s/mcp/mcpart" ]; then
+if [ -d "$PROJECT_DIR/mcpart" ]; then
     echo "  • MCPart docs"
-    cp "$PROJECT_DIR/agent_s/mcp/mcpart/README.md" "$KNOWLEDGE_DIR/MCPart-README.md" 2>/dev/null
-    cp "$PROJECT_DIR/agent_s/mcp/mcpart/TOOLS_DOCUMENTATION.md" "$KNOWLEDGE_DIR/MCPart-Tools.md" 2>/dev/null
-    cp "$PROJECT_DIR/agent_s/mcp/mcpart/QUICK_REFERENCE.md" "$KNOWLEDGE_DIR/MCPart-QuickRef.md" 2>/dev/null
+    cp "$PROJECT_DIR/mcpart/README.md" "$KNOWLEDGE_DIR/MCPart-README.md" 2>/dev/null
+    cp "$PROJECT_DIR/mcpart/TOOLS_DOCUMENTATION.md" "$KNOWLEDGE_DIR/MCPart-Tools.md" 2>/dev/null
+    cp "$PROJECT_DIR/mcpart/QUICK_REFERENCE.md" "$KNOWLEDGE_DIR/MCPart-QuickRef.md" 2>/dev/null
 fi
 
 # Copilot instructions (helpful context)

@@ -14,18 +14,18 @@
 - **🌐 OpenWebUI** - Unified web interface for all AI interactions
 - **🤖 Ollama** - Local LLM inference with 25+ models (Mistral, LLaVA, CodeLlama, etc.)
 - **🔧 MCP Server** - 76 unified business tools (inventory, sales, social media, tasks, files)
-- **🗣️ Coqui TTS** - Professional text-to-speech with voice cloning
+- **🗣️ Chatterbox TTS** - Expressive neural text-to-speech backend
 
 ### In Development
 - **🎨 ComfyUI** - Advanced image generation (SDXL, Flux workflows)
 - **🖥️ Agent-S** - Computer use automation (screen analysis, mouse/keyboard control)
 
-### Web Dashboard
-- ✅ Real-time service monitoring (auto-refresh every 3 seconds)
-- ✅ One-click start/stop controls for all services  
-- ✅ System resource monitoring (CPU, RAM, Disk)
-- ✅ Direct links to running services
-- ✅ Process management and logging
+### Optional Dashboard
+- Real-time service monitoring (auto-refresh every 3 seconds)
+- One-click start/stop controls for host-managed services  
+- System resource monitoring (CPU, RAM, disk)
+- Direct links to running services
+- Process management and logging
 
 ## 🎯 Philosophy
 
@@ -41,7 +41,7 @@
 2. **Chatterbox TTS** - Requires Python 3.11+ environment
 
 **All other services run locally:**
-- OpenWebUI, Ollama, Agent-S, mcpart, mcpo all run as native processes
+- OpenWebUI, Ollama, Agent-S, and the unified MCP tool server (mcpart via mcpo on port 8002) all run as native processes
 
 See [`DOCKER_POLICY.md`](DOCKER_POLICY.md) for the complete policy and reasoning.
 
@@ -79,31 +79,28 @@ pip install -r requirements.txt
 # Install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
 
-# Start the dashboard
-./scripts/start-dashboard.sh
+# Start the full stack
+./scripts/start-all.sh
 ```
 
-The dashboard will open automatically at **http://localhost:5000**
+Once the script finishes, visit **http://localhost:8080** to use OpenWebUI. 
 
-From there, you can start all services with one click! 🎉
+Need a web control panel? Launch the optional dashboard anytime with `./scripts/start-dashboard.sh` (served at **http://localhost:5000**).
 
 ## 📊 Service Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                  Dashboard (Port 5000)                  │
-│              Web-based Service Management               │
+│                Core Host Services (Local)               │
 └─────────────────────────────────────────────────────────┘
-                          │
-        ┌─────────────────┼─────────────────┬─────────────┐
-        │                 │                 │             │
+     │                 │                 │             │
    ┌────▼────┐      ┌─────▼─────┐    ┌─────▼─────┐ ┌────▼────┐
-   │OpenWebUI│      │  Ollama   │    │    MCP    │ │Coqui TTS│
-   │  :8080  │      │  :11434   │    │   :8002   │ │  :5002  │
+  │OpenWebUI│      │  Ollama   │    │ MCP Tools │ │Chatterbox│
+  │  :8080  │      │  :11434   │    │   :8002   │ │  :5003   │
    └─────────┘      └───────────┘    └───────────┘ └─────────┘
-        │                 │                 │             │
-        └─────────────────┴─────────────────┴─────────────┘
-                    All Running Locally
+     │                 │                 │             │
+     └─────────────────┴─────────────────┴─────────────┘
+      (Optional dashboard available on :5000)
 ```
 
 ## 📖 Usage
@@ -111,23 +108,22 @@ From there, you can start all services with one click! 🎉
 ### Start Everything
 
 ```bash
-# Option 1: Use the web dashboard (recommended)
-./scripts/start-dashboard.sh
-# Then click "Start All Services" at http://localhost:5000
+# Option 1: Start core services with one command
+./scripts/start-all.sh
 
 # Option 2: Start services individually
 ./scripts/start-openwebui.sh      # OpenWebUI on port 8080
 ./scripts/start-mcp-unified.sh    # MCP Server on port 8002  
-./tts/start_coqui_api.sh          # Coqui TTS on port 5002
+./scripts/start-tts.sh            # Chatterbox TTS on port 5003 (optional)
 ```
 
 ### Access Services
 
-- **Dashboard**: http://localhost:5000 (service management)
 - **OpenWebUI**: http://localhost:8080 (main AI interface)
 - **Ollama API**: http://localhost:11434 (LLM endpoint)
-- **MCP Server**: http://localhost:8002 (business tools)
-- **Coqui TTS**: http://localhost:5002 (text-to-speech)
+- **MCP Tool Server**: http://localhost:8002/openapi.json (business tools)
+- **Chatterbox TTS**: http://localhost:5003 (text-to-speech)
+- **Dashboard (optional)**: http://localhost:5000 (service management)
 
 ### Check Status
 
@@ -136,7 +132,6 @@ From there, you can start all services with one click! 🎉
 ./scripts/check-services.sh
 
 # View logs
-tail -f logs/dashboard.log
 tail -f logs/openwebui.log
 tail -f logs/mcp-unified.log
 ```
@@ -177,10 +172,7 @@ List available models: `ollama list`
 
 ### Text-to-Speech Voices
 
-Coqui TTS supports:
-- 100+ pre-trained voices across 20+ languages
-- Voice cloning from 5-10 second audio samples
-- 3x real-time generation speed on AMD MI50
+Chatterbox TTS provides expressive, OpenAI-compatible speech synthesis with GPU acceleration via Docker. The default configuration exposes `/v1/audio/speech` and `/health` endpoints on port 5003. For alternate voices or legacy backends (Coqui, Piper), see the additional scripts in `tts/`.
 
 ## 📁 Project Structure
 
@@ -199,31 +191,29 @@ AlphaOmega/
 ├── scripts/              # Startup/utility scripts
 ├── templates/            # Dashboard HTML templates
 ├── tests/                # Test suites
-├── tts/                  # Coqui TTS setup
+├── tts/                  # Chatterbox + legacy TTS backends
 ├── dashboard.py          # Main dashboard application
 └── requirements.txt      # Python dependencies
 ```
 
 ## 🛠️ Development
 
-### Adding a New Service
+### Optional Dashboard Extensions
 
-1. Add service definition to `dashboard.py`:
+If you rely on the optional dashboard UI, you can register additional services by updating `dashboard.py`:
 ```python
 "myservice": {
-    "name": "My Service",
-    "port": 9000,
-    "check_url": "http://localhost:9000/health",
-    "start_cmd": f"{PROJECT_DIR}/scripts/start-myservice.sh",
-    "stop_cmd": "pkill -f myservice",
-    "process_name": "myservice",
-    "description": "What my service does",
-    "status": "ready"
+  "name": "My Service",
+  "port": 9000,
+  "check_url": "http://localhost:9000/health",
+  "start_cmd": f"{PROJECT_DIR}/scripts/start-myservice.sh",
+  "stop_cmd": "pkill -f myservice",
+  "process_name": "myservice",
+  "description": "What my service does",
+  "status": "ready"
 }
 ```
-
-2. Create startup script in `scripts/start-myservice.sh`
-3. Restart dashboard to see the new service
+Then create the matching script under `scripts/` and restart the dashboard. The core stack does not depend on these entries.
 
 ### Running Tests
 
@@ -265,7 +255,7 @@ pgrep -f "service-name"
   ```bash
   curl http://localhost:11434/api/tags     # Ollama
   curl http://localhost:8002/openapi.json  # MCP
-  curl http://localhost:5002/health        # TTS
+  curl http://localhost:5003/health        # TTS
   ```
 
 ### GPU Not Detected
@@ -303,7 +293,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [OpenWebUI](https://github.com/open-webui/open-webui) - Excellent web interface
 - [Ollama](https://ollama.ai/) - Amazing local LLM platform
-- [Coqui TTS](https://github.com/coqui-ai/TTS) - High-quality open source TTS
+- [Chatterbox TTS](https://github.com/resemble-ai/chatterbox) - Expressive neural TTS
 - [AMD ROCm](https://rocm.docs.amd.com/) - GPU compute platform
 
 ## 📧 Contact

@@ -62,6 +62,14 @@ pkill -f "open-webui serve" 2>/dev/null && echo "  Killed remaining OpenWebUI pr
 pkill -f "agent_s/server.py" 2>/dev/null && echo "  Killed remaining Agent-S processes"
 pkill -f "uvx mcpo" 2>/dev/null && echo "  Killed remaining MCP processes"
 
+# Stop Chatterbox TTS container if running
+if command -v docker >/dev/null 2>&1; then
+    if docker ps --format '{{.Names}}' | grep -q '^alphaomega-chatterbox$'; then
+        echo "Stopping Chatterbox TTS container..."
+        docker rm -f alphaomega-chatterbox >/dev/null 2>&1 && echo "  Chatterbox container stopped"
+    fi
+fi
+
 echo ""
 echo -e "${GREEN}All services stopped${NC}"
 echo ""

@@ -129,15 +129,15 @@ Direct DB insertion bypasses all of this, so the UI can't see them even though t
 
 3. **If no MCP UI, check OpenWebUI version**
    ```bash
-   docker exec -it open-webui pip show open-webui
+   pip show open-webui
    ```
    
    You need v0.6.33+ for native MCP support.
 
 4. **If version is too old, upgrade OpenWebUI**
    ```bash
-   docker pull ghcr.io/open-webui/open-webui:main
-   docker-compose up -d --force-recreate openwebui
+   pip install --upgrade open-webui
+   # Restart OpenWebUI service
    ```
 
 5. **After MCP configuration, tools should appear automatically**

@@ -1,42 +1,26 @@
 # ComfyUI Status - October 13, 2025
 
 ## Current State
-- **Container**: `alphaomega-comfyui` exists but failing to start
-- **Error**: PyTorch/transformers compatibility issue
-  ```
-  AttributeError: module 'torch.utils._pytree' has no attribute 'register_pytree_node'
-  ```
-- **Port**: 8188 (configured in docker-compose.yml)
+- **Process**: ComfyUI runs locally (not in Docker)
+- **Status**: Local Python execution with ROCm GPU support
+- **Port**: 8188 (direct local process)
 - **GPU**: Assigned to GPU 2 (MI50 #3)
 
-## Issue
-The existing ComfyUI container has incompatible Python dependencies:
-- PyTorch version conflicts with transformers library
-- Needs rebuild with compatible versions
+## Configuration
+ComfyUI runs as a local Python process with:
+- Direct ROCm GPU access for image generation
+- SDXL and Flux workflow support
+- Local model storage in `./models/comfyui/`
+- Workflow configurations in `./comfyui_bridge/workflows/`
+- Output directory: `./comfyui_bridge/output/`
 
-## Resolution Needed
-1. Create new Dockerfile for ComfyUI with ROCm support
-2. Install compatible PyTorch + transformers versions
-3. Rebuild image and restart container
-
-## Docker-Compose Config
-```yaml
-comfyui:
-  build:
-    context: ./comfyui_bridge
-  container_name: alphaomega-comfyui
-  ports:
-    - "8188:8188"
-  volumes:
-    - ./models/comfyui:/app/models
-    - ./comfyui_bridge/workflows:/app/workflows
-    - ./comfyui_bridge/output:/app/output
+## Local Execution
+```bash
+cd comfyui_bridge
+python main.py
 ```
 
-## Next Steps
-- Build ComfyUI Dockerfile with proper dependencies
-- Test with SDXL/Flux workflows
-- Document image generation endpoints
-
----
-*Deferred pending TTS completion - User priority: TTS first, then ComfyUI*
+## Integration Points
+- OpenWebUI can route image generation requests to local ComfyUI
+- Agent-S can trigger image generation workflows
+- All processing happens locally with GPU acceleration

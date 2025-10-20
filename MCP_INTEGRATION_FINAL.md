@@ -79,13 +79,7 @@ Once configured, OpenWebUI:
 │ mcpo (MCP Proxy) - Port 8002                            │
 │ - Converts MCP stdio to HTTP                            │
 │ - Provides Streamable HTTP endpoint                     │
-└────────────────────────┬────────────────────────────────┘
-                         │ stdio
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│ mcpart (MCP Server) - Port 3000                         │
-│ - 76 business tools (tasks, notes, inventory, sales...) │
-│ - Node.js MCP implementation                            │
+│ - Launches mcpart Node server via stdio                 │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -123,11 +117,8 @@ OpenWebUI should:
 # OpenWebUI logs
 tail -f /home/stacy/AlphaOmega/logs/openwebui.log
 
-# mcpo proxy logs
-tail -f /home/stacy/AlphaOmega/logs/mcpo.log
-
-# mcpart server logs
-cd /home/stacy/AlphaOmega/mcpart && npm run logs
+# MCP server logs (mcpo + mcpart)
+tail -f /home/stacy/AlphaOmega/logs/mcp-server.log
 ```
 
 ## Troubleshooting
@@ -136,14 +127,13 @@ cd /home/stacy/AlphaOmega/mcpart && npm run logs
 
 1. **Verify mcpo is running**:
    ```bash
-   curl http://localhost:8002/health
-   # Should return 200 OK
+   curl http://localhost:8002/openapi.json | jq '.info.title'
    ```
 
 2. **Check tool discovery**:
    ```bash
-   curl http://localhost:8002/tools | jq '.[] | .name'
-   # Should list all 76 tools
+   curl http://localhost:8002/openapi.json | jq '.paths | keys | length'
+   # Should return 76
    ```
 
 3. **Restart OpenWebUI**:
@@ -169,19 +159,14 @@ cd /home/stacy/AlphaOmega/mcpart && npm run logs
 
 2. **Check network accessibility**:
    ```bash
-   # From OpenWebUI container (if using Docker - you're not)
+   # From OpenWebUI (local installation)
    # Or from the same machine:
    nc -zv localhost 8002
    ```
 
 ### Tools Calling but Failing?
 
-1. **Check mcpart is running**:
-   ```bash
-   curl http://localhost:3000/health
-   ```
-
-2. **Test tool directly**:
+1. **Test tool directly**:
    ```bash
    # Via mcpo
    curl -X POST http://localhost:8002/tools/list_tasks \
@@ -189,7 +174,7 @@ cd /home/stacy/AlphaOmega/mcpart && npm run logs
      -d '{}'
    ```
 
-3. **Check permissions in OpenWebUI**:
+2. **Check permissions in OpenWebUI**:
    - Go to Workspace → Tools
    - Click on a tool
    - Verify it's enabled for your models
@@ -206,7 +191,7 @@ cd /home/stacy/AlphaOmega/mcpart && npm run logs
 
 - **OpenWebUI MCP Guide**: `/home/stacy/AlphaOmega/openwebui-docs/docs.openwebui.com/features/mcp.html`
 - **OpenWebUI Tools Guide**: `/home/stacy/AlphaOmega/openwebui-docs/docs.openwebui.com/features/plugin/tools.html`
-- **Docker Policy**: `/home/stacy/AlphaOmega/DOCKER_POLICY.md` (OpenWebUI runs locally!)
+- **Local Installation**: OpenWebUI runs locally on port 8080
 
 ## Success Criteria
 
