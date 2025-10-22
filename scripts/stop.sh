@@ -22,7 +22,9 @@ pkill -f "python.*agent_s.server" || true
 pkill -f "mcpo.*800[0-9]" || true
 pkill -f "node.*build/index.js" || true
 
-# Stop Coqui TTS API
-./tts/stop_coqui_api.sh > /dev/null 2>&1 || true
+# Stop Chatterbox TTS (Docker)
+if command -v docker >/dev/null 2>&1; then
+	./scripts/stop-tts.sh > /dev/null 2>&1 || true
+fi
 
 echo "✓ All services stopped"

@@ -12,21 +12,6 @@ AlphaOmega is a unified local AI orchestration platform that combines:
 **Hardware**: 3× AMD MI50 (48GB each) + AMD RX 6600XT (display)
 **Philosophy**: Everything runs locally, no cloud dependencies, privacy-first design
 
-## CRITICAL: Docker Usage Policy
-
-⚠️ **Docker is ONLY approved for:**
-1. **ComfyUI** - Complex image generation dependencies, ROCm integration
-2. **Chatterbox TTS** - Requires Python 3.11+, complex audio libraries
-
-**ALL OTHER SERVICES RUN LOCALLY:**
-- OpenWebUI: Local Python installation (port 8080)
-- Ollama: Local binary (ports 11434, 11435)
-- Agent-S: Local Python (port 8001)
-- mcpart: Local Node.js (port 3000)
-- mcpo: Local Go binary (port 8002)
-
-**DO NOT containerize anything else!** This is a user preference for simplicity, debugging, and avoiding Docker overhead.
-
 ## Architecture
 
 ### System Flow
@@ -35,9 +20,9 @@ User → OpenWebUI (Port 8080) → Pipeline Router (Intent Detection)
   ↓
   ├─> Ollama GPU 0 (llava:34b) - Vision analysis
   ├─> Ollama GPU 1 (mistral/codellama) - Reasoning/code
-  ├─> ComfyUI GPU 2 (SDXL/Flux) - Image generation [DOCKER]
+  ├─> ComfyUI GPU 2 (SDXL/Flux) - Image generation [LOCAL]
   ├─> Agent-S (Computer use) - Screen/mouse/keyboard [LOCAL]
-  ├─> Chatterbox TTS (port 5003) - Text-to-speech [DOCKER]
+  ├─> Chatterbox TTS (port 5003) - Text-to-speech [LOCAL]
   └─> MCP Server (mcpart) - Artifacts/memory/files [LOCAL]
 ```
 
@@ -58,22 +43,12 @@ RX6600XT (8GB): Display output only (not used for AI)
 - Streaming responses and great UX
 - **Runs locally** - No Docker, direct Python execution
 
-**Why ComfyUI in Docker?**
-- Complex dependencies (PyTorch, ROCm, ONNX, etc.)
-- GPU passthrough is straightforward
-- Isolated from host Python environment
-
-**Why Chatterbox in Docker?**
-- Requires Python 3.11+ (may differ from host)
-- Complex audio processing libraries
-- Self-contained deployment
-
 **Why separate Agent-S service (LOCAL)?**
 - Needs host network access for X11/Wayland
 - Requires privileged mode for input control
 - Isolates potentially risky computer use actions
 - Independent FastAPI server for direct API access
-- **Must run locally** - Docker can't properly access display/input
+- **Must run locally** - Needs direct display/input access
 
 **Why integrate mcpart MCP server (LOCAL)?**
 - Persistent memory across sessions
@@ -89,10 +64,6 @@ RX6600XT (8GB): Display output only (not used for AI)
 # ROCm for AMD GPUs (MI50 requires gfx906 support)
 sudo apt install rocm-dkms rocm-libs
 export HSA_OVERRIDE_GFX_VERSION=9.0.0
-
-# Docker ONLY for ComfyUI and Chatterbox
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
 
 # Verify GPU access
 rocm-smi --showid
@@ -110,7 +81,7 @@ cd AlphaOmega
 cp .env.example .env
 nano .env  # Edit GPU IDs to match your system
 
-# Start all services (local + Docker for ComfyUI/Chatterbox)
+# Start all services (all local)
 ./scripts/start.sh
 
 # Monitor status
@@ -124,11 +95,7 @@ curl http://localhost:8080                  # OpenWebUI
 curl http://localhost:8001/health           # Agent-S
 curl http://localhost:11434/api/tags        # Ollama Vision
 curl http://localhost:11435/api/tags        # Ollama Reasoning
-curl http://localhost:3000/health           # MCP Server (mcpart)
-curl http://localhost:8002/health           # MCP Proxy (mcpo)
-
-# Check Docker services (ONLY ComfyUI and Chatterbox)
-docker ps  # Should show: alphaomega-comfyui, alphaomega-chatterbox
+curl http://localhost:8002/openapi.json     # MCP Tool Server (mcpart via mcpo)
 curl http://localhost:8188/system_stats     # ComfyUI
 curl http://localhost:5003/health           # Chatterbox TTS
 
@@ -140,25 +107,31 @@ rocm-smi --showuse --showmeminfo vram
 
 ### Running in Development Mode
 ```bash
-# Start Docker services (ONLY ComfyUI and Chatterbox)
-docker-compose up -d
-
-# Run Ollama locally (NOT in Docker)
+# Run Ollama locally
 ROCR_VISIBLE_DEVICES=0 OLLAMA_HOST=127.0.0.1:11434 ollama serve &
 ROCR_VISIBLE_DEVICES=1 OLLAMA_HOST=127.0.0.1:11435 ollama serve &
 
-# Run OpenWebUI locally (NOT in Docker)
+# Run OpenWebUI locally
 cd /home/stacy/AlphaOmega
 source venv/bin/activate
 open-webui serve --port 8080 &
 
-# Run Agent-S locally (NOT in Docker)
+# Run Agent-S locally
 cd agent_s
 python server.py &
 
-# Run MCP servers locally (NOT in Docker)
-cd mcpart && npm start &
-cd mcpo && go run main.go &
+# Run unified MCP tool server locally
+cd /home/stacy/AlphaOmega/mcpart
+npm run build
+$HOME/.local/bin/uvx mcpo --port 8002 -- node build/index.js &
+
+# Run ComfyUI locally
+cd comfyui_bridge
+python main.py &
+
+# Run Chatterbox TTS locally
+cd tts
+python chatterbox_server.py &
 ```
 
 ### Testing Components
@@ -290,7 +263,6 @@ python tests/benchmarks/benchmark_pipeline.py --scenario computer_use
 ```
 ```
 AlphaOmega/
-├── docker-compose.yml           # ComfyUI + Chatterbox ONLY (2 services)
 ├── .env                         # Configuration (GPU IDs, ports, safety settings)
 │
 ├── pipelines/
@@ -310,12 +282,11 @@ AlphaOmega/
 │       └── validator.py         # Action safety validation (prevent dangerous ops)
 │
 ├── comfyui_bridge/
-│   ├── workflows/               # ComfyUI workflow JSON definitions
-│   └── Dockerfile               # ComfyUI with ROCm support
+│   ├── main.py                  # Local ComfyUI server
+│   └── workflows/               # ComfyUI workflow JSON definitions
 │
 ├── tts/
-│   ├── Dockerfile.chatterbox    # Chatterbox TTS with Python 3.11
-│   └── start_chatterbox.sh      # Docker build and run script
+│   └── chatterbox_server.py     # Local Chatterbox TTS server
 │
 ```
 ├── config/
@@ -340,11 +311,10 @@ AlphaOmega/
 - **OpenWebUI** (8080): Web interface [LOCAL]
 - **Ollama Vision** (11434): LLaVA 34B on MI50 GPU 0 [LOCAL]
 - **Ollama Reasoning** (11435): Mistral/CodeLlama on MI50 GPU 1 [LOCAL]
-- **ComfyUI** (8188): SDXL/Flux on MI50 GPU 2 [DOCKER]
+- **ComfyUI** (8188): SDXL/Flux on MI50 GPU 2 [LOCAL]
 - **Agent-S** (8001): Computer use automation [LOCAL]
-- **MCP Server (mcpart)** (3000): Business tools [LOCAL]
-- **MCP Proxy (mcpo)** (8002): MCP stdio→HTTP bridge [LOCAL]
-- **Chatterbox TTS** (5003): Text-to-speech [DOCKER]
+- **MCP Tool Server (mcpart via mcpo)** (8002): Filesystem + business tools [LOCAL]
+- **Chatterbox TTS** (5003): Text-to-speech [LOCAL]
 
 ### Python Packages (requirements.txt)
 ```
@@ -359,7 +329,7 @@ pydantic                # Data validation
 ### Git Submodules
 ```bash
 # Add mcpart as submodule (if using)
-git submodule add https://github.com/wspotter/mcpart agent_s/mcp/mcpart
+git submodule add https://github.com/wspotter/mcpart mcpart
 ```
 
 ## Common Tasks
@@ -456,18 +426,13 @@ ROCR_VISIBLE_DEVICES=0,1 python app.py   # Use GPU 0 and 1
 
 ### Troubleshooting ROCm
 ```bash
-# GPU not detected in Docker (ComfyUI/Chatterbox)
-# Verify docker-compose.yml has:
-devices:
-  - /dev/kfd:/dev/kfd
-  - /dev/dri:/dev/dri
-
-# Verify ROCm inside ComfyUI container
-docker exec alphaomega-comfyui rocm-smi
-
-# For local Ollama, GPU should work directly
+# Check GPU detection
 rocm-smi
+
+# Verify GPU access for all services
 ROCR_VISIBLE_DEVICES=0 ollama ps
+ROCR_VISIBLE_DEVICES=1 ollama ps
+ROCR_VISIBLE_DEVICES=2 python -c "import torch; print('GPU available:', torch.cuda.is_available())"
 ```
 
 ## Safety Considerations

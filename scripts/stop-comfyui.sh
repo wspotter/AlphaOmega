@@ -1,53 +1,27 @@
 #!/bin/bash
-# Stop ComfyUI Docker container
+# Stop ComfyUI local service
 
-set -euo pipefail
+PID_FILE="/tmp/comfyui.pid"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-COMPOSE_FILE="$PROJECT_ROOT/docker-compose.yml"
-CONTAINER_NAME="alphaomega-comfyui"
-DEFAULT_CONTAINER_NAME="comfyui"
-
-log() {
-    printf '%s\n' "$1"
-}
-
-if ! command -v docker >/dev/null 2>&1; then
-    log "Docker not installed. Nothing to stop."
-    exit 0
-fi
-
-if docker compose version >/dev/null 2>&1; then
-    COMPOSE_BIN=(docker compose)
-elif command -v docker-compose >/dev/null 2>&1; then
-    COMPOSE_BIN=(docker-compose)
-else
-    log "Docker Compose not available."
-    exit 0
-fi
-
-TARGET_CONTAINER=""
-while read -r cid cname; do
-    if [ "$cname" = "$CONTAINER_NAME" ] || [ "$cname" = "$DEFAULT_CONTAINER_NAME" ]; then
-        TARGET_CONTAINER="$cname"
-        break
+if [ -f "$PID_FILE" ]; then
+    PID=$(cat "$PID_FILE")
+    if ps -p "$PID" > /dev/null 2>&1; then
+        echo "Stopping ComfyUI (PID: $PID)..."
+        sudo kill "$PID"
+        sleep 2
+        if ps -p "$PID" > /dev/null 2>&1; then
+            echo "Force killing ComfyUI..."
+            sudo kill -9 "$PID"
+        fi
+        rm -f "$PID_FILE"
+        echo "✓ ComfyUI stopped."
+    else
+        echo "ComfyUI not running (stale PID file)."
+        rm -f "$PID_FILE"
     fi
-done < <(docker ps --format '{{.ID}} {{.Names}}')
-
-if [ -z "$TARGET_CONTAINER" ]; then
-    log "ComfyUI container not running."
-    exit 0
-fi
-
-if [ "$TARGET_CONTAINER" = "$CONTAINER_NAME" ]; then
-    "${COMPOSE_BIN[@]}" -f "$COMPOSE_FILE" stop comfyui >/dev/null
 else
-    docker stop "$TARGET_CONTAINER" >/dev/null
+    echo "ComfyUI not running (no PID file)."
 fi
 
-if docker ps --format '{{.Names}}' | grep -q "^${TARGET_CONTAINER}$"; then
-    log "Failed to stop $TARGET_CONTAINER."
-else
-    log "ComfyUI container stopped."
-fi
+# Kill any remaining python processes
+sudo pkill -f "python.*main.py.*--listen.*--port.*8188" 2>/dev/null || true

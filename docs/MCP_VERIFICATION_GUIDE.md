@@ -50,7 +50,7 @@ pkill -f "mcpo.*8002"
 
 # Start
 cd /home/stacy/AlphaOmega
-$HOME/.local/bin/uvx mcpo --port 8002 -- node agent_s/mcp/mcpart/build/index.js > logs/mcp-server.log 2>&1 &
+$HOME/.local/bin/uvx mcpo --port 8002 -- node mcpart/build/index.js > logs/mcp-server.log 2>&1 &
 
 # Verify
 sleep 3 && curl -s http://localhost:8002/openapi.json | python3 -c "import json, sys; print('✅ MCP Server OK -', len(json.load(sys.stdin)['paths']), 'tools')"

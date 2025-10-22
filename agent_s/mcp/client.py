@@ -32,7 +32,7 @@ class MCPClient:
             logger.debug(f"Executing MCP tool: {tool_name}")
             
             response = await self.client.post(
-                f"{self.server_url}/tools/{tool_name}",
+                f"{self.server_url}/{tool_name}",
                 json=params
             )
             
@@ -175,12 +175,35 @@ class MCPClient:
         Returns:
             True if connected, False otherwise
         """
-        try:
-            response = await self.client.get(f"{self.server_url}/health", timeout=5.0)
-            return response.status_code == 200
-        except Exception as e:
-            logger.warning(f"MCP server not reachable: {e}")
-            return False
+        health_endpoints = ("/health", "/openapi.json")
+
+        for endpoint in health_endpoints:
+            try:
+                response = await self.client.get(
+                    f"{self.server_url}{endpoint}",
+                    timeout=5.0
+                )
+
+                if response.status_code == 200:
+                    return True
+
+                # Some servers expose OpenAPI but no explicit health route
+                if response.status_code == 404:
+                    continue
+
+                logger.warning(
+                    "MCP health check got unexpected status %s for %s",
+                    response.status_code,
+                    endpoint
+                )
+                return False
+
+            except httpx.RequestError as e:
+                logger.warning("MCP server not reachable at %s: %s", endpoint, e)
+                return False
+
+        logger.warning("MCP server did not respond to health probes")
+        return False
     
     async def close(self):
         """Close HTTP client"""

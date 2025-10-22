@@ -12,7 +12,7 @@ The AlphaOmega Dashboard is now live and managing all 7 services:
 1. **OpenWebUI** (Port 8080) - Unified AI interface
 2. **Ollama** (Port 11434) - LLM inference with 25 models
 3. **MCP Server** (Port 8002) - 76 unified business tools
-4. **Coqui TTS** (Port 5002) - Professional text-to-speech
+4. **Chatterbox TTS** (Port 5003) - Expressive neural speech
 
 ### 🔵 Development Services (Coming Soon)
 5. **ComfyUI** (Port 8188) - Advanced image generation (SDXL, Flux)
@@ -70,7 +70,7 @@ Open in browser: **http://localhost:5000**
 - **OpenWebUI**: http://localhost:8080
 - **Ollama**: http://localhost:11434
 - **MCP Server**: http://localhost:8002
-- **Coqui TTS**: http://localhost:5002
+- **Chatterbox TTS**: http://localhost:5003
 - **ComfyUI**: http://localhost:8188 (when ready)
 - **Agent-S**: http://localhost:8001 (when ready)
 - **VIP**: https://github.com/wspotter/VIP (planned)
@@ -127,7 +127,7 @@ Open in browser: **http://localhost:5000**
 | OpenWebUI | 8080 | Ready | `open-webui serve --port 8080` | Unified AI interface |
 | Ollama | 11434 | Ready | Auto-start | LLM inference engine |
 | MCP Server | 8002 | Ready | `./scripts/start-mcp-unified.sh` | 76 business tools |
-| Coqui TTS | 5002 | Ready | `./tts/start_coqui_api.sh` | Professional TTS |
+| Chatterbox TTS | 5003 | Ready | `./scripts/start-tts.sh` | Expressive neural speech |
 | ComfyUI | 8188 | Development | TBD | Image generation |
 | Agent-S | 8001 | Development | `agent_s/server.py` | Computer automation |
 | VIP | N/A | Planned | N/A | Next integration |

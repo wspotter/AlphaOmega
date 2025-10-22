@@ -39,7 +39,7 @@ def get_model() -> ChatterboxTTS:
     global chatterbox_model
     if chatterbox_model is None:
         logger.info("Loading Chatterbox TTS model...")
-        device = "cuda" if os.getenv("CUDA_VISIBLE_DEVICES") else "cpu"
+        device = "cpu"  # Force CPU for now
         chatterbox_model = ChatterboxTTS.from_pretrained(device=device)
         logger.info(f"Chatterbox model loaded on {device}")
     return chatterbox_model
@@ -70,12 +70,7 @@ async def root():
 @app.get("/health")
 async def health():
     """Health check endpoint"""
-    try:
-        model = get_model()
-        return {"status": "healthy", "model_loaded": model is not None}
-    except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return {"status": "unhealthy", "error": str(e)}
+    return {"status": "healthy", "model_loaded": chatterbox_model is not None}
 
 
 @app.post("/v1/audio/speech")
@@ -155,5 +150,6 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", "5003"))
     host = os.getenv("HOST", "0.0.0.0")
     
+    print("Starting Chatterbox API")
     logger.info(f"Starting Chatterbox TTS API on {host}:{port}")
     uvicorn.run(app, host=host, port=port, log_level="info")

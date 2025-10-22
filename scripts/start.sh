@@ -34,13 +34,17 @@ else
     echo "Ollama services already running"
 fi
 
-# Start Coqui TTS API
-echo "Starting Coqui TTS API..."
-if ! pgrep -f "coqui_api.py" > /dev/null; then
-    ./tts/start_coqui_api.sh > /dev/null 2>&1
-    echo "Started Coqui TTS API on port 5002"
+# Start Chatterbox TTS (Docker)
+echo "Starting Chatterbox TTS service..."
+if command -v docker >/dev/null 2>&1; then
+    if ! docker ps --format '{{.Names}}' | grep -q '^alphaomega-chatterbox$'; then
+        ./scripts/start-tts.sh > /dev/null 2>&1 || true
+        echo "Started Chatterbox TTS on port 5003"
+    else
+        echo "Chatterbox TTS already running"
+    fi
 else
-    echo "Coqui TTS API already running"
+    echo "Docker not available; skipping Chatterbox startup"
 fi
 
 # Start Agent-S server
@@ -96,7 +100,7 @@ echo "  - OpenWebUI: http://localhost:8080"
 echo "  - Agent-S API: http://localhost:8001"
 echo "  - ComfyUI: http://localhost:${COMFYUI_PORT:-8188}"
 echo "  - MCP Server: http://localhost:8002"
-echo "  - Coqui TTS API: http://localhost:5002"
+echo "  - Chatterbox TTS: http://localhost:5003"
 echo "  - SearxNG Meta Search: http://localhost:${SEARXNG_PORT:-8181}"
 echo ""
 echo "Check status: ./scripts/status.sh"

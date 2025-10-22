@@ -10,14 +10,14 @@
 2. ✅ **OpenWebUI** (Port 8080) - Unified AI interface (protobuf fixed!)
 3. ✅ **Ollama** (Port 11434) - 25 models loaded
 4. ✅ **MCP Server** (Port 8002) - 76 unified tools
-5. ✅ **Coqui TTS** (Port 5002) - Professional TTS
+5. ✅ **Chatterbox TTS** (Port 5003) - Expressive neural speech
 
 ### Quick Access
 - **Dashboard**: http://localhost:5000
 - **OpenWebUI**: http://localhost:8080
 - **Ollama**: http://localhost:11434
 - **MCP Server**: http://localhost:8002
-- **TTS**: http://localhost:5002
+- **TTS**: http://localhost:5003
 
 ## 📚 Important Files
 
@@ -67,7 +67,7 @@ Note: One package (descript-audiotools) shows a warning but it doesn't affect Op
 | OpenWebUI | 8080 | ✅ Running | Just fixed! |
 | Ollama | 11434 | ✅ Running | 25 models |
 | MCP Server | 8002 | ✅ Running | 76 tools unified |
-| Coqui TTS | 5002 | ✅ Running | Voice cloning |
+| Chatterbox TTS | 5003 | ✅ Running | Expressive neural speech |
 | ComfyUI | 8188 | 🔵 Development | Coming soon |
 | Agent-S | 8001 | 🔵 Development | Coming soon |
 | VIP | N/A | 📋 Planned | Next integration |

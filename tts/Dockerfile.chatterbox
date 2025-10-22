@@ -25,4 +25,4 @@ COPY chatterbox_api.py /app/
 EXPOSE 5003
 
 # Run the API server
-CMD ["python", "chatterbox_api.py"]
+CMD ["uvicorn", "chatterbox_api:app", "--host", "0.0.0.0", "--port", "5003", "--log-level", "info"]

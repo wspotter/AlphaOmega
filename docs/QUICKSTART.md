@@ -57,8 +57,8 @@ AGENT_SAFE_MODE=true    # Recommended for first use
 ### 4. Start Services
 
 ```bash
-# Start all services
-./scripts/start.sh
+# Start the full stack
+./scripts/start-all.sh
 
 # Monitor startup (Ctrl+C to exit, services keep running)
 ./scripts/monitor.sh
@@ -68,7 +68,7 @@ Wait ~30 seconds for all services to initialize.
 
 ### 5. Access OpenWebUI
 
-Open your browser to: **http://localhost:3000**
+Open your browser to: **http://localhost:8080**
 
 You should see the OpenWebUI interface!
 
@@ -146,8 +146,7 @@ You should see:
 curl http://localhost:8080                  # OpenWebUI
 curl http://localhost:8001/health           # Agent-S
 curl http://localhost:11434/api/tags        # Ollama
-curl http://localhost:3000/health           # mcpart
-curl http://localhost:8002/health           # mcpo
+curl http://localhost:8002/openapi.json     # MCP tool server
 
 # Check Docker services (ComfyUI and Chatterbox only)
 docker ps
@@ -189,11 +188,11 @@ ps aux | grep open-webui
 ps aux | grep "python.*agent_s"
 
 # Check if ports are in use
-sudo netstat -tulpn | grep -E '(8080|11434|11435|8188|8001|3000|8002|5003)'
+sudo netstat -tulpn | grep -E '(8080|11434|11435|8188|8001|8002|5003)'
 
 # Restart everything
-./scripts/stop.sh
-./scripts/start.sh
+./scripts/stop-all.sh
+./scripts/start-all.sh
 ```
 
 ### GPU not detected
@@ -296,7 +295,7 @@ comfyui_bridge/workflows/
 Add mcpart submodule for advanced features:
 
 ```bash
-git submodule add https://github.com/wspotter/mcpart agent_s/mcp/mcpart
+git submodule add https://github.com/wspotter/mcpart mcpart
 ```
 
 ## Stopping AlphaOmega

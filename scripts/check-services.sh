@@ -58,12 +58,20 @@ fi
 # 3. Coqui TTS
 if pgrep -f "coqui_api.py" > /dev/null; then
     if curl -s http://localhost:5002/health > /dev/null 2>&1; then
-        echo -e "${GREEN}✓${NC} Coqui TTS API (port 5002)"
+        echo -e "${GREEN}✓${NC} Coqui TTS (port 5002)"
     else
-        echo -e "${YELLOW}⚠${NC} Coqui TTS process running but not responding"
+        echo -e "${YELLOW}⚠${NC} Coqui TTS running but health check failed"
     fi
 else
-    echo -e "${RED}✗${NC} Coqui TTS API - NOT RUNNING"
+    echo -e "${RED}✗${NC} Coqui TTS - NOT RUNNING"
+fi
+
+# 4. ComfyUI
+COMFYUI_PORT="${COMFYUI_PORT:-8188}"
+if curl -s "http://localhost:${COMFYUI_PORT}/system_stats" > /dev/null 2>&1; then
+    echo -e "${GREEN}✓${NC} ComfyUI (port ${COMFYUI_PORT})"
+else
+    echo -e "${RED}✗${NC} ComfyUI (port ${COMFYUI_PORT}) - NOT RESPONDING"
 fi
 
 echo ""
@@ -76,15 +84,18 @@ echo "  MCP Server:     http://localhost:8002"
 echo "  MCP Docs:       http://localhost:8002/docs"
 echo "  Coqui TTS:      http://localhost:5002"
 echo "  TTS Health:     http://localhost:5002/health"
+echo "  ComfyUI:        http://localhost:${COMFYUI_PORT}"
 echo ""
 echo "=================================================="
 echo -e "${BLUE}Quick Commands:${NC}"
 echo "=================================================="
 echo ""
 echo "  Start MCP:      ./scripts/start-mcp-unified.sh"
-echo "  Start TTS:      ./tts/start_coqui_api.sh"
-echo "  Stop TTS:       ./tts/stop_coqui_api.sh"
+echo "  Start TTS:      ./scripts/start-tts.sh"
+echo "  Stop TTS:       ./scripts/stop-tts.sh"
 echo "  Stop MCP:       pkill -f 'mcpo.*8002'"
+echo "  Start ComfyUI:  ./scripts/start-comfyui.sh"
+echo "  Stop ComfyUI:   ./scripts/stop-comfyui.sh"
 echo "  View logs:      tail -f logs/mcp-unified.log"
 echo "  View TTS logs:  tail -f logs/coqui_tts.log"
 echo ""

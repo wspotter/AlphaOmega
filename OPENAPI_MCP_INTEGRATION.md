@@ -106,14 +106,7 @@ OpenWebUI should:
 │ mcpo (MCP Proxy) - Port 8002                            │
 │ - Exposes OpenAPI spec at /openapi.json                 │
 │ - Translates HTTP → MCP stdio                           │
-│ - Provides REST endpoints for all tools                 │
-└────────────────────────┬────────────────────────────────┘
-                         │ stdio
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│ mcpart (MCP Server) - Port 3000                         │
-│ - 76 business tools (tasks, notes, inventory, sales...) │
-│ - Node.js MCP implementation                            │
+│ - Runs mcpart via Node.js stdio bridge                  │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -141,7 +134,7 @@ curl http://localhost:8002/openapi.json | jq '.openapi'
 # Should return: "3.1.0"
 
 # Check if mcpo is running
-curl http://localhost:8002/health
+curl http://localhost:8002/openapi.json | jq '.info.title'
 ```
 
 ### Tools not appearing in OpenWebUI?
@@ -176,9 +169,9 @@ curl http://localhost:8002/health
    tail -f logs/mcpo.log
    ```
 
-3. **Verify mcpart is responding**:
+3. **Verify mcpart build is ready**:
    ```bash
-   curl http://localhost:3000/health
+   ls /home/stacy/AlphaOmega/mcpart/build/index.js
    ```
 
 ## Comparison: MCP Native vs OpenAPI

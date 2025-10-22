@@ -33,26 +33,6 @@ fi
 echo -e "${GREEN}✓ ROCm found${NC}"
 rocm-smi --showid
 
-# Check for Docker
-if ! command -v docker &> /dev/null; then
-    echo -e "${RED}ERROR: Docker not found. Installing Docker...${NC}"
-    curl -fsSL https://get.docker.com | sh
-    sudo usermod -aG docker $USER
-    echo -e "${YELLOW}Please log out and back in for Docker group changes to take effect${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}✓ Docker found${NC}"
-
-# Check for Docker Compose
-if ! command -v docker-compose &> /dev/null; then
-    echo -e "${YELLOW}Installing Docker Compose...${NC}"
-    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose
-fi
-
-echo -e "${GREEN}✓ Docker Compose found${NC}"
-
 echo ""
 echo -e "${YELLOW}Step 2: Setting up environment...${NC}"
 
@@ -136,14 +116,6 @@ ollama pull codellama:13b || echo -e "${YELLOW}Warning: Failed to pull codellama
 echo -e "${GREEN}✓ Models pulled successfully${NC}"
 
 echo ""
-echo -e "${YELLOW}Step 7: Building Docker containers...${NC}"
-
-# Build Docker images
-docker-compose build --parallel
-
-echo -e "${GREEN}✓ Docker containers built${NC}"
-
-echo ""
 echo "======================================"
 echo -e "${GREEN}Setup Complete!${NC}"
 echo "======================================"
@@ -151,12 +123,12 @@ echo ""
 echo "Next steps:"
 echo "1. Edit .env file with your specific configuration"
 echo "2. Start services: ./scripts/start.sh"
-echo "3. Access OpenWebUI at http://localhost:3000"
+echo "3. Access OpenWebUI at http://localhost:8080"
 echo ""
 echo "For development:"
 echo "  - Agent-S API: http://localhost:8001"
 echo "  - Ollama Vision: http://localhost:11434"
 echo "  - Ollama Reasoning: http://localhost:11435"
 echo "  - ComfyUI: http://localhost:8188"
-echo "  - MCP Server: http://localhost:8002"
+echo "  - MCP Tool Server: http://localhost:8002/openapi.json"
 echo ""

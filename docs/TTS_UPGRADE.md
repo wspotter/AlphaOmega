@@ -1,11 +1,11 @@
 # TTS Voice System Upgrade - October 13, 2025
 
 ## Summary
-Upgraded AlphaOmega's text-to-speech system with high-quality voices and added state-of-the-art Chatterbox TTS integration.
+Upgraded AlphaOmega's text-to-speech system with high-quality voices and promoted the Chatterbox TTS integration to the default backend.
 
 ## What Changed
 
-### 1. **Coqui TTS Improvements**
+### 1. **Coqui TTS Improvements** (Legacy Optional)
 - **Default Voice**: Switched to `jenny` (48kHz high-fidelity neural voice)
 - **Fallback**: `tacotron2-DDC` (stable, proven quality)
 - **Downloaded Models**: 14 English models including jenny, neural_hmm, glow-tts, fast_pitch
@@ -77,7 +77,7 @@ curl -X POST http://localhost:5003/v1/audio/speech \
   --output test.wav && aplay test.wav
 ```
 
-### Coqui TTS (Current Default)
+### Coqui TTS (Legacy Option)
 ```bash
 # Already running on port 5002
 curl -X POST http://localhost:5002/v1/audio/speech \
@@ -104,17 +104,17 @@ python tts/fetch_coqui_voices.py --download all   # Download all (large)
 
 ## OpenWebUI Configuration
 
-### Current Settings (Coqui/Jenny)
+### Current Settings (Chatterbox Default)
 - **TTS Engine**: OpenAI
-- **URL**: `http://localhost:5002/v1`
-- **Voice**: `jenny`
+- **URL**: `http://localhost:5003/v1`
+- **Voice**: `default`
 - **Model**: `tts-1`
 
-### Switch to Chatterbox (After Build Complete)
+### Switch Back to Coqui (If Needed)
 1. Go to OpenWebUI → Settings → Audio
-2. Change **TTS URL** to: `http://localhost:5003/v1`
-3. Keep voice as `default`
-4. Model: `tts-1` (standard) or `tts-1-hd` (more expressive)
+2. Change **TTS URL** to: `http://localhost:5002/v1`
+3. Voice: `jenny`
+4. Model: `tts-1`
 
 ### For Smoother Synthesis
 - **Response splitting**: Change from "Punctuation" to **"none"**

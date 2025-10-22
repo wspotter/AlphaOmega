@@ -5,8 +5,13 @@
 
 ## Running Services
 
-### ✅ 1. Dashboard (Port 5000) - NEW! 🎉
-- **Status**: Running - Web-based service management
+### ✅ 1. OpenWebUI (Port 8080)
+- **Status**: Primary interface for all LLM interactions
+- **Access**: http://localhost:8080 (served directly from host Python env)
+- **Notes**: Streams responses, routes to pipelines, and surfaces MCP tools
+
+### ✅ 2. Dashboard (Port 5000) - OPTIONAL 🎉
+- **Status**: Running - Web-based service management (optional helper)
 - **Features**:
   - Real-time status monitoring (auto-refresh every 3 seconds)
   - One-click service start/stop controls
@@ -14,18 +19,18 @@
   - Direct links to all services
   - Service logs viewer
 - **URL**: http://localhost:5000
-- **Access**: Opens automatically in browser when started
+- **Access**: Launch only if you want the UI helper
 - **Scripts**:
   - Start: `./scripts/start-dashboard.sh`
   - Stop: `./scripts/stop-dashboard.sh`
 
-### ✅ 2. Ollama (Port 11434)
+### ✅ 3. Ollama (Port 11434)
 - **Status**: Running with 25 models
 - **Models**: llama3.2-vision, codellama:13b, mistral, llava:34b, and 21 more
 - **GPU**: Uses available AMD GPUs (RX 6600 XT + MI50s)
 - **API**: http://localhost:11434
 
-### ✅ 3. MCP Server (Port 8002) - UNIFIED
+### ✅ 4. MCP Server (Port 8002) - UNIFIED
 - **Status**: Running with 76 tools
 - **Important**: This is ONE unified server, not split!
 - **Tools by Category**:
@@ -40,43 +45,36 @@
 - **API**: http://localhost:8002
 - **Docs**: http://localhost:8002/docs
 
-### ✅ 4. Coqui TTS (Port 5002)
-- **Status**: Running with professional voice quality
+### ✅ 5. Chatterbox TTS (Port 5003)
+- **Status**: Running via Docker (expressive neural speech)
 - **Features**:
-  - 100+ pre-trained models
-  - Voice cloning (5-10 sec audio sample)
-  - Multi-language support (20+ languages)
-  - 3x real-time speed on AMD MI50
-- **API**: http://localhost:5002
-- **Health**: http://localhost:5002/health
+  - OpenAI-compatible `/v1/audio/speech`
+  - GPU-accelerated synthesis with exaggerated prosody controls
+  - Health check at `/health`
+- **API**: http://localhost:5003
+- **Health**: http://localhost:5003/health
 
 ## Quick Start Commands
 
-### Start All Services (Easy Way - Use Dashboard!)
+### Start All Services (Primary Path)
 ```bash
-# Start the web dashboard (recommended)
-./scripts/start-dashboard.sh
-# Opens in browser at http://localhost:5000
-# Click "▶️ Start All Services" button
+# Start OpenWebUI, MCP, Ollama, and Agent-S
+./scripts/start-all.sh
+
+# Optional: start Chatterbox TTS
+./scripts/start-tts.sh
 ```
 
-### Start All Services (Command Line)
+### Optional Dashboard Helper
 ```bash
-# Start MCP Server (76 tools, port 8002)
-./scripts/start-mcp-unified.sh
-
-# Start Coqui TTS (already running)
-./tts/start_coqui_api.sh
-
-# Start Dashboard
+# Launch the optional dashboard UI if you want service controls
 ./scripts/start-dashboard.sh
-
-# Ollama starts automatically
+# Opens in browser at http://localhost:5000
 ```
 
 ### Check Status
 ```bash
-# Via web dashboard (recommended)
+# Via optional web dashboard
 # Open http://localhost:5000 in your browser
 
 # Or via command line
@@ -85,21 +83,14 @@
 
 ### Stop Services
 ```bash
-# Via web dashboard (recommended)
-# Open http://localhost:5000 and click "⏹️ Stop All Services"
+# Stop everything started via start-all.sh
+./scripts/stop-all.sh
 
-# Or via command line:
-# Stop Dashboard
+# Optional: stop the dashboard helper
 ./scripts/stop-dashboard.sh
 
-# Stop MCP
-pkill -f 'mcpo.*8002'
-
-# Stop TTS
-./tts/stop_coqui_api.sh
-
-# Stop Ollama
-pkill ollama
+# Optional: stop Chatterbox TTS container
+./scripts/stop-tts.sh
 ```
 
 ## Important Notes
@@ -120,12 +111,13 @@ See: `MCP_SERVER_WARNING.md` for details.
 │   ├── check-services.sh          ✅ Check all services
 │   └── start-mcp-servers.sh.WRONG_DONT_USE  ❌ Don't use
 ├── tts/
-│   ├── start_coqui_api.sh         ✅ Start TTS
-│   ├── stop_coqui_api.sh          ✅ Stop TTS
-│   └── coqui_api.py               Server code
+│   ├── start_chatterbox.sh        ✅ Start TTS (Docker)
+│   ├── stop_chatterbox.sh         ✅ Stop TTS container
+│   ├── chatterbox_api.py          API server (container entrypoint)
+│   └── start_coqui_api.sh         Legacy Coqui backend (optional)
 ├── logs/
 │   ├── mcp-unified.log            MCP server logs
-│   └── coqui_tts.log              TTS logs
+│   └── chatterbox/                TTS container logs (mounted)
 └── docs/
     ├── MCP_VERIFICATION_GUIDE.md  MCP tools reference
     ├── COQUI_TTS_SETUP.md         TTS setup guide
@@ -144,10 +136,10 @@ See: `MCP_SERVER_WARNING.md` for details.
 
 ### TTS Configuration
 1. OpenWebUI Settings → Audio → Text-to-Speech
-2. **TTS API Base URL**: http://localhost:5002/v1
+2. **TTS API Base URL**: http://localhost:5003/v1
 3. **Model**: 
-   - `tts-1` (fast, good quality)
-   - `tts-1-hd` (XTTS-v2 with voice cloning)
+  - `tts-1` (standard Chatterbox voice)
+  - `tts-1-hd` (higher expressiveness)
 
 ## Testing
 
@@ -168,17 +160,17 @@ curl http://localhost:8002/docs
 ### Test TTS
 ```bash
 # Generate speech
-curl -X POST http://localhost:8002/v1/audio/speech \
+curl -X POST http://localhost:5003/v1/audio/speech \
   -H 'Content-Type: application/json' \
   -d '{
     "model": "tts-1",
-    "input": "Hello from Coqui TTS!",
+    "input": "Hello from Chatterbox!",
     "voice": "alloy"
   }' \
   --output test.wav
 
 # Check health
-curl http://localhost:5002/health
+curl http://localhost:5003/health
 ```
 
 ### Test Ollama
@@ -195,7 +187,7 @@ curl http://localhost:11434/api/generate -d '{
 
 ## What Changed Today
 
-1. **✅ Installed Coqui TTS** - Professional voice quality, voice cloning
+1. **✅ Switched to Chatterbox TTS** - Dockerized neural speech backend on port 5003
 2. **✅ Fixed MCP Server** - Corrected unified configuration (76 tools on port 8002)
 3. **✅ Created Warning Documentation** - Prevent accidental server split
 4. **🎉 NEW: Web Dashboard** - Graphical service management interface
@@ -205,15 +197,15 @@ curl http://localhost:11434/api/generate -d '{
    - Direct links to all services
    - Port 5000: http://localhost:5000
 4. **✅ Created Service Check Script** - Easy status verification
-5. **✅ Removed Piper TTS** - Replaced with Coqui (better quality)
+5. **✅ Retired Coqui as default** - Still available via legacy scripts if needed
 
 ## Documentation
 
 - **MCP Tools**: `docs/MCP_VERIFICATION_GUIDE.md`
 - **MCP Warning**: `MCP_SERVER_WARNING.md`
-- **TTS Setup**: `docs/COQUI_TTS_SETUP.md`
+- **TTS Overview**: `docs/TTS_UPGRADE.md` (includes Chatterbox + legacy notes)
+- **Legacy Coqui Setup**: `docs/COQUI_TTS_SETUP.md`
 - **Voice Cloning**: `docs/VOICE_CLONING_GUIDE.md`
-- **TTS Complete**: `COQUI_TTS_COMPLETE.md`
 
 ## Support
 
@@ -227,8 +219,8 @@ pkill -f 'mcpo.*8002'
 ./scripts/start-mcp-unified.sh
 
 # Restart TTS
-./tts/stop_coqui_api.sh
-./tts/start_coqui_api.sh
+./scripts/stop-tts.sh
+./scripts/start-tts.sh
 ```
 
 ### Check Logs

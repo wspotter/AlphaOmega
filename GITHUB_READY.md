@@ -74,7 +74,7 @@ AlphaOmega/
 ├── scripts/                     # Startup/management scripts
 ├── templates/                   # Dashboard HTML
 ├── tests/                       # Test suites
-├── tts/                         # Coqui TTS setup
+├── tts/                         # Chatterbox + legacy TTS backends
 │
 └── review/                      # 📋 OLD FILES (gitignored)
     ├── old_docs/               # Old documentation
@@ -94,7 +94,7 @@ Added to .gitignore:
 - ✅ README.md - NEW professional version
 - ✅ SERVICES_RUNNING.md - Current service status
 - ✅ DASHBOARD_COMPLETE.md - Dashboard documentation
-- ✅ COQUI_TTS_COMPLETE.md - TTS setup guide
+- ✅ docs/TTS_UPGRADE.md - TTS upgrade roadmap (Chatterbox default)
 - ✅ MCP_SERVER_WARNING.md - Critical MCP config warning
 - ✅ docs/DASHBOARD_GUIDE.md - Complete dashboard guide
 - ✅ docs/ARCHITECTURE.md - System architecture
@@ -112,7 +112,7 @@ Added to .gitignore:
 | **OpenWebUI** | 8080 | ✅ Running | NEW! Just added |
 | **Ollama** | 11434 | ✅ Running | 25 models loaded |
 | **MCP Server** | 8002 | ✅ Running | 76 tools unified |
-| **Coqui TTS** | 5002 | ✅ Running | Professional quality |
+| **Chatterbox TTS** | 5003 | ✅ Running | Expressive neural speech |
 | **ComfyUI** | 8188 | 🔵 Development | Coming soon |
 | **Agent-S** | 8001 | 🔵 Development | Coming soon |
 
@@ -174,7 +174,7 @@ Features:
 - OpenWebUI integration (port 8080)
 - Ollama with 25+ models (port 11434)
 - MCP Server with 76 business tools (port 8002)
-- Coqui TTS with voice cloning (port 5002)
+- Chatterbox TTS with expressive speech (port 5003)
 - Real-time monitoring and control
 - AMD ROCm GPU support
 - Complete local execution (no cloud dependencies)"

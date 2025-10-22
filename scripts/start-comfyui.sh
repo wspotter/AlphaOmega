@@ -1,80 +1,61 @@
 #!/bin/bash
-# Start ComfyUI Docker container
+# Start ComfyUI image generation service (LOCAL, AMD ROCm)
 
-set -euo pipefail
+set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-COMPOSE_FILE="$PROJECT_ROOT/docker-compose.yml"
-CONTAINER_NAME="alphaomega-comfyui"
-DEFAULT_CONTAINER_NAME="comfyui"
-DEFAULT_IMAGE="alphaomega-comfyui"
-PORT_VALUE="${COMFYUI_PORT:-8188}"
+COMFYUI_DIR="${COMFYUI_DIR:-/opt/ComfyUI}"
+PORT="${COMFYUI_PORT:-8188}"
+GPU_INDEX="${COMFYUI_GPU:-2}"
+HSA_VERSION="${HSA_OVERRIDE_GFX_VERSION:-9.0.0}"
+PID_FILE="/tmp/comfyui.pid"
+LOG_FILE="${PROJECT_ROOT}/logs/comfyui.log"
 
-log() {
-    printf '%s\n' "$1"
-}
-
-if ! command -v docker >/dev/null 2>&1; then
-    log "Docker not installed. Cannot start ComfyUI."
-    exit 1
-fi
-
-if docker compose version >/dev/null 2>&1; then
-    COMPOSE_BIN=(docker compose)
-elif command -v docker-compose >/dev/null 2>&1; then
-    COMPOSE_BIN=(docker-compose)
-else
-    log "Docker Compose not available. Install docker compose plugin or docker-compose."
-    exit 1
-fi
-
-ACTIVE_CONTEXT="$(docker context show 2>/dev/null || echo default)"
-if [ "$ACTIVE_CONTEXT" = "desktop-linux" ]; then
-    if docker --context default info >/dev/null 2>&1; then
-        log "Docker context 'desktop-linux' (Docker Desktop) cannot map /dev/kfd."
-        log "Run 'docker context use default' to talk to the host docker engine, then retry start-comfyui.sh."
+# Check if already running
+if [ -f "$PID_FILE" ]; then
+    OLD_PID=$(cat "$PID_FILE")
+    if ps -p "$OLD_PID" > /dev/null 2>&1; then
+        echo "ComfyUI already running (PID: $OLD_PID) on port ${PORT}."
+        exit 0
     else
-        log "Active Docker context '$ACTIVE_CONTEXT' cannot access /dev/kfd. Switch to a context backed by the host engine before retrying."
+        rm -f "$PID_FILE"
     fi
-    exit 1
 fi
 
-if [ ! -e /dev/kfd ]; then
-    log "GPU device /dev/kfd not found. ROCm drivers are not loaded, so ComfyUI cannot access the MI50 GPUs."
-    log "Run 'sudo modprobe amdkfd amdgpu' (requires ROCm stack) and retry start-comfyui.sh."
-    exit 1
-fi
+# Create symlinks to AlphaOmega directories
+mkdir -p "${PROJECT_ROOT}/models/comfyui"
+mkdir -p "${PROJECT_ROOT}/comfyui_bridge/workflows"
+mkdir -p "${PROJECT_ROOT}/comfyui_bridge/output"
+mkdir -p "${PROJECT_ROOT}/logs"
 
-# Detect existing running container by name or image
-EXISTING_MATCH=""
-while read -r cid cname; do
-    if [ "$cname" = "$CONTAINER_NAME" ] || [ "$cname" = "$DEFAULT_CONTAINER_NAME" ]; then
-        EXISTING_MATCH="$cname"
-        break
-    fi
-    image_name=$(docker inspect --format='{{.Config.Image}}' "$cid" 2>/dev/null || true)
-    if [ "$image_name" = "$DEFAULT_IMAGE" ]; then
-        EXISTING_MATCH="$cname"
-        break
-    fi
-done < <(docker ps --format '{{.ID}} {{.Names}}')
+# Link models and outputs
+sudo rm -rf "${COMFYUI_DIR}/models" 2>/dev/null || true
+sudo ln -sf "${PROJECT_ROOT}/models/comfyui" "${COMFYUI_DIR}/models"
+sudo rm -rf "${COMFYUI_DIR}/output" 2>/dev/null || true
+sudo ln -sf "${PROJECT_ROOT}/comfyui_bridge/output" "${COMFYUI_DIR}/output"
 
-if [ -n "$EXISTING_MATCH" ]; then
-    log "ComfyUI container already running (${EXISTING_MATCH})."
-    exit 0
-fi
+echo "Starting ComfyUI on port ${PORT} (GPU ${GPU_INDEX})..."
 
-if lsof -Pi :$PORT_VALUE -sTCP:LISTEN -t >/dev/null 2>&1; then
-    log "Port $PORT_VALUE already in use. Skipping ComfyUI startup."
-    exit 0
-fi
+# Start ComfyUI with ROCm environment
+cd "${COMFYUI_DIR}"
+HSA_OVERRIDE_GFX_VERSION="${HSA_VERSION}" \
+ROCR_VISIBLE_DEVICES="${GPU_INDEX}" \
+nohup sudo -E venv/bin/python main.py --listen --port "${PORT}" > "${LOG_FILE}" 2>&1 &
 
-"${COMPOSE_BIN[@]}" -f "$COMPOSE_FILE" up -d comfyui
+COMFYUI_PID=$!
+echo "$COMFYUI_PID" > "$PID_FILE"
 
-if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-    log "ComfyUI started on http://localhost:${PORT_VALUE}/"
+# Wait for startup
+sleep 3
+
+if ps -p "$COMFYUI_PID" > /dev/null 2>&1; then
+    echo "✓ ComfyUI started successfully!"
+    echo "   PID: $COMFYUI_PID"
+    echo "   URL: http://localhost:${PORT}"
+    echo "   Logs: ${LOG_FILE}"
 else
-    log "Failed to start ComfyUI container."
+    echo "✗ Failed to start ComfyUI. Check logs: ${LOG_FILE}"
+    rm -f "$PID_FILE"
     exit 1
 fi
