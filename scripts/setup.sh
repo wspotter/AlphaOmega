@@ -23,15 +23,15 @@ fi
 
 echo -e "${YELLOW}Step 1: Checking system requirements...${NC}"
 
-# Check for ROCm
-if ! command -v rocm-smi &> /dev/null; then
-    echo -e "${RED}ERROR: ROCm not found. Please install ROCm first.${NC}"
-    echo "Visit: https://rocm.docs.amd.com/projects/install-on-linux/en/latest/"
+# Check for NVIDIA CUDA
+if ! command -v nvidia-smi &> /dev/null; then
+    echo -e "${RED}ERROR: NVIDIA GPU or CUDA not found. Please install NVIDIA drivers and CUDA first.${NC}"
+    echo "Visit: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/"
     exit 1
 fi
 
-echo -e "${GREEN}✓ ROCm found${NC}"
-rocm-smi --showid
+echo -e "${GREEN}✓ NVIDIA GPU found${NC}"
+nvidia-smi --list-gpus
 
 echo ""
 echo -e "${YELLOW}Step 2: Setting up environment...${NC}"
@@ -78,19 +78,17 @@ else
     echo -e "${GREEN}✓ Ollama found${NC}"
 fi
 
-# Set HSA override for MI50
+# Configure CUDA for NVIDIA GPUs
 echo ""
-echo -e "${YELLOW}Step 5: Configuring ROCm for MI50 GPUs...${NC}"
+echo -e "${YELLOW}Step 5: Configuring CUDA for NVIDIA GPUs...${NC}"
 
-if ! grep -q "HSA_OVERRIDE_GFX_VERSION" ~/.bashrc; then
-    echo 'export HSA_OVERRIDE_GFX_VERSION=9.0.0' >> ~/.bashrc
-    echo -e "${GREEN}✓ Added HSA_OVERRIDE_GFX_VERSION to ~/.bashrc${NC}"
+if ! grep -q "CUDA_VISIBLE_DEVICES" ~/.bashrc; then
+    echo 'export CUDA_VISIBLE_DEVICES=0,1' >> ~/.bashrc
+    echo -e "${GREEN}✓ Added CUDA_VISIBLE_DEVICES to ~/.bashrc${NC}"
     echo -e "${YELLOW}Run: source ~/.bashrc to apply changes${NC}"
 else
-    echo -e "${GREEN}✓ HSA_OVERRIDE_GFX_VERSION already set${NC}"
+    echo -e "${GREEN}✓ CUDA_VISIBLE_DEVICES already set${NC}"
 fi
-
-export HSA_OVERRIDE_GFX_VERSION=9.0.0
 
 echo ""
 echo -e "${YELLOW}Step 6: Pulling Ollama models (this may take a while)...${NC}"

@@ -7,6 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 PID_FILE="/tmp/alphaomega-dashboard.pid"
 LOG_FILE="$PROJECT_ROOT/logs/dashboard.log"
+VENV_PATH="$PROJECT_ROOT/venv"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -38,18 +39,22 @@ fi
 mkdir -p "$PROJECT_ROOT/logs"
 
 # Activate virtual environment if it exists
-if [ -d "$PROJECT_ROOT/venv" ]; then
-    source "$PROJECT_ROOT/venv/bin/activate"
+if [ -d "$VENV_PATH" ]; then
+    echo "📦 Activating virtual environment..."
+    source "$VENV_PATH/bin/activate"
 else
     echo -e "${YELLOW}⚠️  Virtual environment not found${NC}"
-    echo "   Install dependencies with: pip install flask requests psutil"
+    echo "   Creating venv and installing dependencies..."
+    python3 -m venv "$VENV_PATH"
+    source "$VENV_PATH/bin/activate"
+    pip install flask requests psutil
 fi
 
 # Check for required dependencies
 if ! python -c "import flask, requests, psutil" 2>/dev/null; then
     echo -e "${RED}✗ Missing dependencies${NC}"
-    echo "  Install with: pip install flask requests psutil"
-    exit 1
+    echo "  Installing dependencies..."
+    pip install flask requests psutil
 fi
 
 # Start dashboard
@@ -70,6 +75,7 @@ if ps -p "$DASHBOARD_PID" > /dev/null 2>&1; then
     echo "   Process ID: $DASHBOARD_PID"
     echo "   Dashboard: http://localhost:5000"
     echo "   Logs: $LOG_FILE"
+    echo "   Virtual Env: Active"
     echo ""
     echo "Quick commands:"
     echo "   View logs: tail -f $LOG_FILE"
@@ -85,5 +91,9 @@ else
     echo -e "${RED}✗ Failed to start dashboard${NC}"
     echo "Check logs: $LOG_FILE"
     rm -f "$PID_FILE"
+    deactivate 2>/dev/null
     exit 1
 fi
+
+# Note: venv stays active for the background process
+# It will be deactivated when stop-dashboard.sh is run

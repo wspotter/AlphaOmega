@@ -10,7 +10,7 @@ Make sure you have:
 - Python 3.10+ and Node.js 18+ (for local services)
 - At least 50GB free disk space (for models)
 
-**Important**: See `DOCKER_POLICY.md` - only ComfyUI and Chatterbox TTS use Docker. All other services run locally.
+**Important**: Only Chatterbox TTS uses Docker. All other services (OpenWebUI, Ollama, ComfyUI, Agent-S, MCP) run as local processes.
 
 ### 2. Clone and Setup
 

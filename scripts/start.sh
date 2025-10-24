@@ -1,109 +1,65 @@
 #!/bin/bash
-# Start AlphaOmega services
+# Start AlphaOmega services via Dashboard API (auto-starts dashboard + venv)
 
 set -e
 
-echo "Starting AlphaOmega services..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Load environment (properly filter comments and empty lines)
-if [ -f .env ]; then
-    set -a
-    source <(grep -v '^#' .env | grep -v '^$' | sed 's/#.*$//')
-    set +a
-fi
+echo "🚀 Starting AlphaOmega via Dashboard..."
 
-# Set HSA override for MI50
-export HSA_OVERRIDE_GFX_VERSION=9.0.0
-
-# Start Ollama services first (not in Docker)
-echo "Starting Ollama services on GPUs..."
-
-# Check if Ollama is already running
-if ! pgrep -x "ollama" > /dev/null; then
-    # Start Ollama for GPU 0 (Vision)
-    ROCR_VISIBLE_DEVICES=0 OLLAMA_HOST=127.0.0.1:11434 ollama serve > logs/ollama-vision.log 2>&1 &
-    echo "Started Ollama Vision (GPU 0) on port 11434"
-    
-    # Start Ollama for GPU 1 (Reasoning)
-    ROCR_VISIBLE_DEVICES=1 OLLAMA_HOST=127.0.0.1:11435 ollama serve > logs/ollama-reasoning.log 2>&1 &
-    echo "Started Ollama Reasoning (GPU 1) on port 11435"
-    
-    # Wait for Ollama to be ready
-    sleep 5
+# 1) Ensure dashboard is running
+if ! curl -s http://localhost:5000/api/status > /dev/null 2>&1; then
+    echo "📊 Dashboard not running — starting it now..."
+    "$SCRIPT_DIR/start-dashboard.sh"
+    # Wait until API is ready
+    echo -n "⏳ Waiting for dashboard API"; attempts=0
+    until curl -s http://localhost:5000/api/status > /dev/null 2>&1; do
+        attempts=$((attempts+1))
+        if [ $attempts -gt 30 ]; then
+            echo ""; echo "❌ Dashboard failed to become ready"; exit 1
+        fi
+        echo -n "."; sleep 1
+    done
+    echo ""; echo "✅ Dashboard is up"
 else
-    echo "Ollama services already running"
+    echo "✅ Dashboard already running"
 fi
 
-# Start Chatterbox TTS (Docker)
-echo "Starting Chatterbox TTS service..."
-if command -v docker >/dev/null 2>&1; then
-    if ! docker ps --format '{{.Names}}' | grep -q '^alphaomega-chatterbox$'; then
-        ./scripts/start-tts.sh > /dev/null 2>&1 || true
-        echo "Started Chatterbox TTS on port 5003"
-    else
-        echo "Chatterbox TTS already running"
-    fi
+# 2) Start all services via dashboard API
+echo "🚀 Starting all services..."
+RESPONSE=$(curl -s -X GET http://localhost:5000/api/start_all)
+if echo "$RESPONSE" | grep -q '"results"'; then
+    echo "✅ Services starting..."
+    echo "$RESPONSE" | python3 -m json.tool || true
 else
-    echo "Docker not available; skipping Chatterbox startup"
+    echo "❌ Failed to start services via dashboard"
+    echo "Response: $RESPONSE"; exit 1
 fi
 
-# Start Agent-S server
-echo "Starting Agent-S server..."
-if ! pgrep -f "python.*agent_s.server" > /dev/null; then
-    xvfb-run -a python -m agent_s.server > logs/agent_actions.log 2>&1 &
-    echo "Started Agent-S on port 8001 (with virtual display)"
-else
-    echo "Agent-S already running"
-fi
+# 3) Wait and print consolidated status
+echo "\n⏳ Waiting for services to initialize..."
+sleep 10
+echo "📈 Final service status:"
+curl -s http://localhost:5000/api/status | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+print('=' * 50)
+for service, info in data['services'].items():
+    status = '✅' if info.get('running') else '❌'
+    responsive = '🟢' if info.get('responsive') else '🔴'
+    svc_name = info.get('name', service)
+    print(f'{status} {responsive} {service}: {svc_name}')
+print('=' * 50)
+" || true
 
-# Start MCP server (unified mcpo proxy)
-echo "Starting MCP server..."
-if ! pgrep -f "mcpo.*8002" > /dev/null; then
-    if ./scripts/start-mcp-unified.sh >/dev/null 2>&1; then
-        echo "Started unified MCP Server on port 8002"
-    else
-        echo "Failed to start MCP Server. Check logs/mcp-unified.log"
-    fi
-else
-    echo "MCP Server already running"
-fi
-
-# Start container services (Docker-approved trio only)
-echo "Starting container services..."
-
-# SearxNG runs in Docker by policy
-if command -v docker >/dev/null 2>&1; then
-    if ! ./scripts/start-searxng.sh; then
-        echo "Failed to start SearxNG. Check docker-compose configuration."
-    fi
-else
-    echo "Docker not available; skipping SearxNG startup"
-fi
-
-# ComfyUI also lives in Docker (approved service)
-if command -v docker >/dev/null 2>&1; then
-    if ! ./scripts/start-comfyui.sh; then
-        echo "Failed to start ComfyUI. Check docker-compose configuration."
-    fi
-else
-    echo "Docker not available; skipping ComfyUI startup"
-fi
-
-# Note: OpenWebUI runs on host unless launched separately
-echo "OpenWebUI should be started manually if needed"
-
-echo ""
-echo "✓ AlphaOmega is starting up..."
-echo ""
-echo "Services:"
-echo "  - OpenWebUI: http://localhost:8080"
-echo "  - Agent-S API: http://localhost:8001"
-echo "  - ComfyUI: http://localhost:${COMFYUI_PORT:-8188}"
-echo "  - MCP Server: http://localhost:8002"
-echo "  - Chatterbox TTS: http://localhost:5003"
-echo "  - SearxNG Meta Search: http://localhost:${SEARXNG_PORT:-8181}"
-echo ""
-echo "Check status: ./scripts/status.sh"
-echo "View logs: tail -f logs/*.log"
-echo "Stop: ./scripts/stop.sh"
-echo ""
+echo "\n🎯 Access points:"
+echo "  📊 Dashboard: http://localhost:5000"
+echo "  🌐 OpenWebUI: http://localhost:8080"
+echo "  🤖 Ollama: http://localhost:11434"
+echo "  🔧 MCP Tools: http://localhost:8002"
+echo "  🎨 ComfyUI: http://localhost:8188"
+echo "  🗣️ Chatterbox TTS: http://localhost:5003"
+echo "  🔍 SearxNG: http://localhost:8181"
+echo "  🤖 Agent-S: http://localhost:8001"
+echo "\n📋 Monitor: curl http://localhost:5000/api/status"

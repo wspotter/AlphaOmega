@@ -44,8 +44,8 @@ SERVICES = {
         "name": "Ollama",
         "port": 11434,
         "check_url": "http://localhost:11434/api/tags",
-        "start_cmd": None,  # Already running
-        "stop_cmd": "pkill ollama",
+        "start_cmd": f"{PROJECT_DIR}/scripts/start-ollama.sh",
+        "stop_cmd": f"{PROJECT_DIR}/scripts/stop-ollama.sh",
         "process_name": "ollama",
         "description": "LLM inference engine with 25+ models",
         "status": "ready"
@@ -61,12 +61,12 @@ SERVICES = {
         "status": "ready"
     },
     "tts": {
-        "name": "Coqui TTS",
-        "port": 5002,
-        "check_url": "http://localhost:5002/health",
+        "name": "Chatterbox TTS",
+        "port": 5003,
+        "check_url": "http://localhost:5003/health",
         "start_cmd": f"{PROJECT_DIR}/scripts/start-tts.sh",
         "stop_cmd": f"{PROJECT_DIR}/scripts/stop-tts.sh",
-        "process_name": "coqui_api.py",
+        "process_name": "chatterbox",
         "description": "Professional text-to-speech with voice cloning",
         "status": "ready"
     },
@@ -76,9 +76,8 @@ SERVICES = {
         "check_url": f"http://localhost:{SEARXNG_PORT}",
         "start_cmd": f"{PROJECT_DIR}/scripts/start-searxng.sh",
         "stop_cmd": f"{PROJECT_DIR}/scripts/stop-searxng.sh",
-        "process_name": None,
-        "container_name": SEARXNG_CONTAINERS,
-        "description": "Privacy-preserving meta search engine (Docker)",
+        "process_name": "flask run",
+        "description": "Privacy-preserving meta search engine",
         "status": "ready"
     },
     "comfyui": {
@@ -87,18 +86,17 @@ SERVICES = {
         "check_url": f"http://localhost:{COMFYUI_PORT}/system_stats",
         "start_cmd": f"{PROJECT_DIR}/scripts/start-comfyui.sh",
         "stop_cmd": f"{PROJECT_DIR}/scripts/stop-comfyui.sh",
-        "process_name": None,
-        "container_name": COMFYUI_CONTAINERS,
-        "description": "Advanced image generation (SDXL, Flux workflows) [Docker]",
+        "process_name": "main.py.*8188",
+        "description": "Advanced image generation (SDXL, Flux workflows)",
         "status": "ready"
     },
     "agents": {
         "name": "Agent-S",
         "port": 8001,
         "check_url": "http://localhost:8001/health",
-        "start_cmd": f"{PROJECT_DIR}/agent_s/server.py",
+        "start_cmd": f"cd {PROJECT_DIR} && source venv/bin/activate && xvfb-run -a python agent_s/server.py",
         "stop_cmd": "pkill -f 'agent_s/server.py'",
-        "process_name": "server.py",
+        "process_name": "agent_s/server.py",
         "description": "Computer use automation (screen, mouse, keyboard)",
         "status": "development"
     },
@@ -308,12 +306,17 @@ def start_service(service):
         return jsonify({"error": "Service cannot be started via dashboard"}), 400
     
     try:
-        subprocess.Popen(
-            service_config["start_cmd"],
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
+        # For background services, redirect output and detach properly
+        log_file = PROJECT_DIR / "logs" / f"{service}.log"
+        with open(log_file, 'a') as logfile:
+            subprocess.Popen(
+                service_config["start_cmd"],
+                shell=True,
+                stdout=logfile,
+                stderr=logfile,
+                preexec_fn=os.setsid  # Create new process group
+            )
+        
         time.sleep(2)  # Give service time to start
         
         return jsonify({
@@ -358,12 +361,16 @@ def start_all():
     for key, service in SERVICES.items():
         if service["start_cmd"]:
             try:
-                subprocess.Popen(
-                    service["start_cmd"],
-                    shell=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
-                )
+                # For background services, redirect output and detach properly
+                log_file = PROJECT_DIR / "logs" / f"{key}.log"
+                with open(log_file, 'a') as logfile:
+                    subprocess.Popen(
+                        service["start_cmd"],
+                        shell=True,
+                        stdout=logfile,
+                        stderr=logfile,
+                        preexec_fn=os.setsid  # Create new process group
+                    )
                 results[key] = "starting"
             except Exception as e:
                 results[key] = f"error: {str(e)}"
@@ -394,7 +401,7 @@ def get_logs(service):
     """Get recent logs for a service"""
     log_files = {
         "mcp": PROJECT_DIR / "logs" / "mcp-unified.log",
-        "tts": PROJECT_DIR / "logs" / "coqui_tts.log",
+        "tts": PROJECT_DIR / "logs" / "chatterbox.log",
         "ollama": PROJECT_DIR / "logs" / "ollama-vision.log"
     }
     

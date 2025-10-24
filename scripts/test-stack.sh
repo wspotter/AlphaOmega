@@ -131,16 +131,19 @@ else
 fi
 echo ""
 
-# GPU Status
+# GPU Status (vendor-agnostic)
 echo "8. GPU Status"
-if command -v rocm-smi > /dev/null 2>&1; then
-    echo "GPU Utilization:"
+if command -v nvidia-smi > /dev/null 2>&1; then
+    echo "NVIDIA GPUs detected:"
+    nvidia-smi --query-gpu=name,utilization.gpu,memory.used,memory.total --format=csv,noheader 2>/dev/null |
+      awk -F, '{printf "  - %s | Util: %s | Mem: %s / %s\n", $1,$2,$3,$4}' || echo "  Unable to query NVIDIA GPUs"
+elif command -v rocm-smi > /dev/null 2>&1; then
+    echo "AMD GPUs detected:"
     rocm-smi --showuse 2>/dev/null | grep -E "GPU|%" || echo "  Unable to query GPU usage"
     echo ""
-    echo "GPU Memory:"
     rocm-smi --showmeminfo vram 2>/dev/null | grep -E "GPU|Memory" || echo "  Unable to query GPU memory"
 else
-    echo -e "${YELLOW}⚠ ROCm not available${NC}"
+    echo -e "${YELLOW}⚠ No GPU utility found (CPU-only or drivers not installed)${NC}"
 fi
 echo ""
 

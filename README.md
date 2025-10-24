@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![ROCm Compatible](https://img.shields.io/badge/ROCm-Compatible-orange.svg)](https://rocm.docs.amd.com/)
+[![NVIDIA CUDA Compatible](https://img.shields.io/badge/NVIDIA-CUDA-green.svg)](https://developer.nvidia.com/cuda-toolkit)
 
 ## 🌟 Features
 
@@ -31,19 +31,20 @@
 
 - **Privacy-First**: Everything runs locally - no cloud APIs, no data leaving your machine
 - **Local-First**: Most services run directly on the host (no Docker overhead)
-- **AMD GPU Optimized**: Built for AMD MI50 GPUs with ROCm support
+- **NVIDIA GPU Optimized**: Built for NVIDIA GPUs with CUDA support
 - **Production-Ready**: Complete with monitoring, logging, and safety validators
 
-## ⚠️ Docker Policy
+## 🏗️ Architecture
 
-**Docker is ONLY used for:**
-1. **ComfyUI** - Complex image generation dependencies
-2. **Chatterbox TTS** - Requires Python 3.11+ environment
+**Most services run directly on the host:**
+- OpenWebUI (port 8080) - Web interface
+- Ollama (port 11434) - LLM inference
+- Agent-S (port 8001) - Computer use automation
+- ComfyUI (port 8188) - Image generation (local install)
+- MCP OpenAPI Proxy (port 8002) - Tools server
 
-**All other services run locally:**
-- OpenWebUI, Ollama, Agent-S, and the unified MCP tool server (mcpart via mcpo on port 8002) all run as native processes
-
-See [`DOCKER_POLICY.md`](DOCKER_POLICY.md) for the complete policy and reasoning.
+**Docker is only used for:**
+- **Chatterbox TTS** (port 5003) - Isolated Python 3.11+ environment
 
 ## 🚀 Quick Start
 

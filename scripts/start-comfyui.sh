@@ -1,15 +1,13 @@
 #!/bin/bash
-# Start ComfyUI image generation service (LOCAL, AMD ROCm)
+# Start ComfyUI image generation service
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-COMFYUI_DIR="${COMFYUI_DIR:-/opt/ComfyUI}"
+COMFYUI_DIR="${PROJECT_ROOT}/ComfyUI"
 PORT="${COMFYUI_PORT:-8188}"
-GPU_INDEX="${COMFYUI_GPU:-2}"
-HSA_VERSION="${HSA_OVERRIDE_GFX_VERSION:-9.0.0}"
-PID_FILE="/tmp/comfyui.pid"
+PID_FILE="${PROJECT_ROOT}/logs/comfyui.pid"
 LOG_FILE="${PROJECT_ROOT}/logs/comfyui.log"
 
 # Check if already running
@@ -23,25 +21,24 @@ if [ -f "$PID_FILE" ]; then
     fi
 fi
 
-# Create symlinks to AlphaOmega directories
+# Check if ComfyUI exists
+if [ ! -d "$COMFYUI_DIR" ]; then
+    echo "❌ ComfyUI not found at $COMFYUI_DIR"
+    echo "Run: cd $PROJECT_ROOT && git clone https://github.com/comfyanonymous/ComfyUI.git"
+    exit 1
+fi
+
+# Create directories
+mkdir -p "${PROJECT_ROOT}/logs"
 mkdir -p "${PROJECT_ROOT}/models/comfyui"
 mkdir -p "${PROJECT_ROOT}/comfyui_bridge/workflows"
 mkdir -p "${PROJECT_ROOT}/comfyui_bridge/output"
-mkdir -p "${PROJECT_ROOT}/logs"
 
-# Link models and outputs
-sudo rm -rf "${COMFYUI_DIR}/models" 2>/dev/null || true
-sudo ln -sf "${PROJECT_ROOT}/models/comfyui" "${COMFYUI_DIR}/models"
-sudo rm -rf "${COMFYUI_DIR}/output" 2>/dev/null || true
-sudo ln -sf "${PROJECT_ROOT}/comfyui_bridge/output" "${COMFYUI_DIR}/output"
+echo "Starting ComfyUI on port ${PORT}..."
 
-echo "Starting ComfyUI on port ${PORT} (GPU ${GPU_INDEX})..."
-
-# Start ComfyUI with ROCm environment
+# Start ComfyUI
 cd "${COMFYUI_DIR}"
-HSA_OVERRIDE_GFX_VERSION="${HSA_VERSION}" \
-ROCR_VISIBLE_DEVICES="${GPU_INDEX}" \
-nohup sudo -E venv/bin/python main.py --listen --port "${PORT}" > "${LOG_FILE}" 2>&1 &
+nohup venv/bin/python main.py --listen --port "${PORT}" > "${LOG_FILE}" 2>&1 &
 
 COMFYUI_PID=$!
 echo "$COMFYUI_PID" > "$PID_FILE"

@@ -4,6 +4,9 @@
 # Stops the web-based service management dashboard
 
 PID_FILE="/tmp/alphaomega-dashboard.pid"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+VENV_PATH="$PROJECT_ROOT/venv"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -11,6 +14,12 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo "⏹️  Stopping AlphaOmega Dashboard..."
+
+# Deactivate virtual environment if active
+if [[ "$VIRTUAL_ENV" != "" ]]; then
+    echo "📦 Deactivating virtual environment..."
+    deactivate 2>/dev/null || true
+fi
 
 # Check if PID file exists
 if [ ! -f "$PID_FILE" ]; then
@@ -64,3 +73,5 @@ else
     echo -e "${YELLOW}⚠️  Dashboard process not found${NC}"
     rm -f "$PID_FILE"
 fi
+
+echo "📦 Virtual environment deactivated"
