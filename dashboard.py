@@ -27,9 +27,8 @@ SEARXNG_CONTAINERS = ["alphaomega-searxng", "searxng", DEFAULT_SEARXNG_HASH]
 if SEARXNG_CONTAINER_ID:
     SEARXNG_CONTAINERS.append(SEARXNG_CONTAINER_ID)
 
-SEARXNG_PORT = int(os.getenv("SEARXNG_PORT", "8081"))
+SEARXNG_PORT = int(os.getenv("SEARXNG_PORT", "8181"))
 COMFYUI_PORT = int(os.getenv("COMFYUI_PORT", "8188"))
-COMFYUI_CONTAINERS = ["alphaomega-comfyui", "comfyui"]
 CHATTERBOX_CONTAINER = ["alphaomega-chatterbox"]
 
 SERVICES = {
@@ -63,6 +62,17 @@ SERVICES = {
         "description": "Unified mcpo proxy exposing 76 MCP tools via OpenAPI",
         "status": "ready"
     },
+    "mcpart_dashboard": {
+        "name": "MCPART Dashboard",
+        "port": 3000,
+        "check_url": "http://localhost:3000",
+        "start_cmd": f"{PROJECT_DIR}/scripts/start-mcpart-dashboard.sh",
+        "stop_cmd": f"{PROJECT_DIR}/scripts/stop-mcpart-dashboard.sh",
+        "process_name": None,
+        "pid_file": PROJECT_DIR / "logs" / "mcpart-dashboard.pid",
+        "description": "Web UI for exploring MCP tools and stats",
+        "status": "ready"
+    },
     "tts": {
         "name": "Chatterbox TTS",
         "port": 5003,
@@ -81,8 +91,8 @@ SERVICES = {
         "start_cmd": f"{PROJECT_DIR}/scripts/start-searxng.sh",
         "stop_cmd": f"{PROJECT_DIR}/scripts/stop-searxng.sh",
         "process_name": None,
-        "container_name": SEARXNG_CONTAINERS,
-        "description": "Privacy-preserving meta search engine (Docker)",
+        "pid_file": PROJECT_DIR / "logs" / "searxng.pid",
+        "description": "Privacy-preserving meta search engine",
         "status": "ready"
     },
     "comfyui": {
@@ -92,8 +102,8 @@ SERVICES = {
         "start_cmd": f"{PROJECT_DIR}/scripts/start-comfyui.sh",
         "stop_cmd": f"{PROJECT_DIR}/scripts/stop-comfyui.sh",
         "process_name": None,
-        "container_name": COMFYUI_CONTAINERS,
-        "description": "Advanced image generation (SDXL, Flux workflows) [Docker]",
+        "pid_file": PROJECT_DIR / "logs" / "comfyui.pid",
+        "description": "Advanced image generation (SDXL, Flux workflows)",
         "status": "ready"
     },
     "agents": {
@@ -191,7 +201,29 @@ def check_service_status(service_key):
                     status["details"]["inspect_error"] = str(inspect_error)
             else:
                 status["running"] = False
-        elif service.get("process_name"):
+
+        if not status["running"] and service.get("pid_file"):
+            pid_path = Path(service["pid_file"])
+            try:
+                if pid_path.exists():
+                    pid_raw = pid_path.read_text(encoding="utf-8").strip().splitlines()
+                    pid_value = pid_raw[-1] if pid_raw else ""
+                    if pid_value:
+                        try:
+                            pid_int = int(pid_value)
+                            if psutil.pid_exists(pid_int):
+                                status["running"] = True
+                                status["pid"] = pid_value
+                            else:
+                                status["details"]["pid_file_status"] = "stale"
+                        except ValueError:
+                            status["details"]["pid_file_error"] = "invalid pid"
+                    else:
+                        status["details"]["pid_file_status"] = "empty"
+            except Exception as pid_error:
+                status["details"]["pid_file_error"] = str(pid_error)
+
+        if not status["running"] and service.get("process_name"):
             result = subprocess.run(
                 ["pgrep", "-f", service["process_name"]],
                 capture_output=True,
@@ -205,10 +237,13 @@ def check_service_status(service_key):
     except Exception as exc:
         status["error"] = str(exc)
 
-    if status["running"]:
+    response = None
+    if service.get("check_url"):
         try:
             response = requests.get(service["check_url"], timeout=2)
+            status["http_status"] = response.status_code
             status["responsive"] = response.status_code == 200
+            status["running"] = True
 
             data = None
             if status["responsive"] and response.headers.get("content-type", "").startswith("application/json"):
@@ -238,7 +273,8 @@ def check_service_status(service_key):
                 })
         except Exception as exc:
             status["responsive"] = False
-            status["error"] = str(exc)
+            if "error" not in status:
+                status["error"] = str(exc)
 
     return status
 

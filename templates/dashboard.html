@@ -275,6 +275,7 @@
             <button class="btn btn-start" onclick="startAll()">▶️ Start All Services</button>
             <button class="btn btn-stop" onclick="stopAll()">⏹️ Stop All Services</button>
             <button class="btn btn-refresh" onclick="refreshStatus()">🔄 Refresh Now</button>
+            <a class="btn btn-link" href="http://localhost:3000" target="_blank" rel="noopener">🧭 MCPART Dashboard</a>
         </div>
         
         <div class="system-stats" id="systemStats">
@@ -583,6 +584,22 @@
                     actionsHtml = `
                         <button class="btn btn-start btn-small" onclick="startService('${key}')">▶️ Start</button>
                     `;
+                }
+
+                if (key === 'mcp') {
+                    const mcpartLink = `<a href="http://localhost:3000" target="_blank" rel="noopener" class="btn btn-link btn-small" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">🧭 MCPART Dashboard</a>`;
+                    actionsHtml = `${mcpartLink}${actionsHtml}`;
+                }
+
+                if (key === 'mcpart_dashboard') {
+                    const openBtn = `<a href="http://localhost:3000" target="_blank" rel="noopener" class="btn btn-link btn-small" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">🧭 Open MCPART</a>`;
+                    const startBtn = `<button class="btn btn-start btn-small" onclick="startService('${key}')">▶️ Start</button>`;
+                    const stopBtn = `<button class="btn btn-stop btn-small" onclick="stopService('${key}')">⏹️ Stop</button>`;
+                    if (service.running) {
+                        actionsHtml = `${openBtn}${startBtn}${stopBtn}`;
+                    } else {
+                        actionsHtml = `${openBtn}${startBtn}`;
+                    }
                 }
                 
                 return `

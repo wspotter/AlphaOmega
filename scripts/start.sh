@@ -71,6 +71,14 @@ else
     echo "MCP Server (8002) is NOT responsive!"
 fi
 
+echo "Starting MCPART dashboard..."
+./scripts/start-mcpart-dashboard.sh > /dev/null 2>&1 || true
+if curl -s http://localhost:3000 | grep -qi "<html"; then
+    echo "MCPART Dashboard (3000) is responsive."
+else
+    echo "MCPART Dashboard (3000) is NOT responsive!"
+fi
+
 # Start container services (Docker-approved trio only)
 echo "Starting container services..."
 

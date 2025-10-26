@@ -12,6 +12,7 @@ if ! curl -s http://localhost:5000/api/status > /dev/null 2>&1; then
     pkill -f "python.*agent_s.server" || true
     pkill -f "mcpo.*800[0-9]" || true
     pkill -f "node.*build/index.js" || true
+    pkill -f "node.*build/dashboard.js" || true
     pkill -f "open-webui" || true
 
     # Stop containers
