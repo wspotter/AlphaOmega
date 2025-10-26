@@ -1,101 +1,158 @@
-import random404: Not Found
-import numpy as np
-import torch
+#!/usr/bin/env python3
+"""Gradio GUI for the Chatterbox TTS Docker service."""
+
+from __future__ import annotations
+
+import os
+import shutil
+from pathlib import Path
+from typing import Optional, Tuple
+
 import gradio as gr
-from chatterbox.tts import ChatterboxTTS
+import requests
 
 
-DEVICE = "cpu"  # Force CPU for Docker compatibility
+API_URL = os.getenv("CHATTERBOX_API_URL", "http://localhost:5003/v1/audio/speech")
+HEALTH_URL = API_URL.replace("/v1/audio/speech", "/health")
+SHARED_TMP = Path(os.getenv("CHATTERBOX_SHARED_TMP", "/tmp"))
+SHARED_TMP.mkdir(parents=True, exist_ok=True)
+
+DEFAULT_TEXT = "Hello from Chatterbox! Let's make something amazing together."
 
 
-def set_seed(seed: int):
-    torch.manual_seed(seed)
-    if DEVICE == "cuda":
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-    random.seed(seed)
-    np.random.seed(seed)
+def _prepare_audio_prompt(uploaded_path: Optional[str]) -> Optional[str]:
+    """Copy uploaded audio into /tmp so the Docker container can read it."""
+    if not uploaded_path:
+        return None
+
+    src = Path(uploaded_path)
+    if not src.exists():
+        return None
+
+    target = SHARED_TMP / "chatterbox_prompt.wav"
+    shutil.copy(src, target)
+    return str(target)
 
 
-def load_model():
-    model = ChatterboxTTS.from_pretrained(DEVICE)
-    return model
+def synthesize(
+    text: str,
+    reference_audio: Optional[str],
+    model: str,
+    temperature: float,
+    exaggeration: float,
+    top_p: float,
+    min_p: float,
+    repetition_penalty: float,
+) -> Tuple[Optional[str], str]:
+    """Send a synthesis request to the local Chatterbox API."""
+    text = (text or "").strip()
+    if not text:
+        return None, "Please type something to speak."
+
+    payload: dict = {
+        "input": text,
+        "model": model,
+        "temperature": temperature,
+        "top_p": top_p,
+        "min_p": min_p,
+        "repetition_penalty": repetition_penalty,
+        "exaggeration": exaggeration,
+    }
+
+    prompt_path = _prepare_audio_prompt(reference_audio)
+    if prompt_path:
+        payload["audio_prompt_path"] = prompt_path
+
+    try:
+        response = requests.post(API_URL, json=payload, timeout=180)
+        if response.status_code != 200:
+            return None, f"Error {response.status_code}: {response.text[:200]}"
+
+        output_path = SHARED_TMP / "chatterbox_output.wav"
+        output_path.write_bytes(response.content)
+
+        detail = f"Generated audio ({len(response.content)} bytes)"
+        if prompt_path:
+            detail += f" using prompt {Path(prompt_path).name}"
+        return str(output_path), f"✅ {detail}"
+    except requests.exceptions.ConnectionError:
+        return None, "Could not reach Chatterbox. Is the Docker container running?"
+    except Exception as exc:  # noqa: BLE001
+        return None, f"Unexpected error: {exc}"
 
 
-def generate(model, text, audio_prompt_path, exaggeration, temperature, seed_num, cfgw, min_p, top_p, repetition_penalty):
-    if model is None:
-        model = ChatterboxTTS.from_pretrained(DEVICE)
+def create_interface() -> gr.Blocks:
+    with gr.Blocks(title="Chatterbox Voice Cloner") as demo:
+        gr.Markdown("""
+        # 🎙️ Chatterbox Voice Cloner
+        Generate speech with the local Chatterbox Docker service. Optional voice cloning works best with 3-10 seconds of clean audio.
+        """)
 
-    if seed_num != 0:
-        set_seed(int(seed_num))
+        health_text = gr.Markdown(value="Checking Chatterbox status…")
 
-    wav = model.generate(
-        text,
-        audio_prompt_path=audio_prompt_path,
-        exaggeration=exaggeration,
-        temperature=temperature,
-        cfg_weight=cfgw,
-        min_p=min_p,
-        top_p=top_p,
-        repetition_penalty=repetition_penalty,
-    )
-    return (model.sr, wav.squeeze(0).numpy())
+        def check_health() -> str:
+            try:
+                resp = requests.get(HEALTH_URL, timeout=5)
+                if resp.status_code == 200:
+                    return "✅ Chatterbox API is reachable."
+                return f"⚠️ Chatterbox health check returned {resp.status_code}."
+            except Exception:
+                return "❌ Unable to reach Chatterbox. Make sure `./scripts/start-tts.sh` is running."
 
+        health_text.value = check_health()
 
-with gr.Blocks() as demo:
-    gr.Markdown("# 🎙️ Chatterbox TTS with Voice Cloning")
-    gr.Markdown("Official Resemble AI Chatterbox GUI with voice cloning support")
-    
-    model_state = gr.State(None)  # Loaded once per session/user
+        with gr.Row():
+            with gr.Column():
+                text_input = gr.Textbox(
+                    label="Text to speak",
+                    placeholder="Type what the cloned voice should say…",
+                    value=DEFAULT_TEXT,
+                    lines=5,
+                )
 
-    with gr.Row():
-        with gr.Column():
-            text = gr.Textbox(
-                value="Now let's make my mum's favourite. So three mars bars into the pan. Then we add the tuna and just stir for a bit, just let the chocolate and fish infuse. A sprinkle of olive oil and some tomato ketchup. Now smell that. Oh boy this is going to be incredible.",
-                label="Text to synthesize (max chars 300)",
-                max_lines=5
-            )
-            ref_wav = gr.Audio(sources=["upload", "microphone"], type="filepath", label="Reference Audio File (for voice cloning)", value=None)
-            exaggeration = gr.Slider(0.25, 2, step=.05, label="Exaggeration (Neutral = 0.5, extreme values can be unstable)", value=.5)
-            cfg_weight = gr.Slider(0.0, 1, step=.05, label="CFG/Pace", value=0.5)
+                reference_audio = gr.Audio(
+                    label="Voice sample (optional)",
+                    type="filepath",
+                    sources=["upload", "microphone"],
+                )
 
-            with gr.Accordion("More options", open=False):
-                seed_num = gr.Number(value=0, label="Random seed (0 for random)")
-                temp = gr.Slider(0.05, 5, step=.05, label="temperature", value=.8)
-                min_p = gr.Slider(0.00, 1.00, step=0.01, label="min_p || Newer Sampler. Recommend 0.02 > 0.1. Handles Higher Temperatures better. 0.00 Disables", value=0.05)
-                top_p = gr.Slider(0.00, 1.00, step=0.01, label="top_p || Original Sampler. 1.0 Disables(recommended). Original 0.8", value=1.00)
-                repetition_penalty = gr.Slider(1.00, 2.00, step=0.1, label="repetition_penalty", value=1.2)
+                model_choice = gr.Dropdown(
+                    label="Model",
+                    choices=["tts-1", "tts-1-hd"],
+                    value="tts-1",
+                )
 
-            run_btn = gr.Button("Generate", variant="primary")
+                generate_btn = gr.Button("🎵 Generate", variant="primary")
 
-        with gr.Column():
-            audio_output = gr.Audio(label="Output Audio")
+            with gr.Column():
+                output_audio = gr.Audio(label="Generated audio", type="filepath")
+                status_box = gr.Textbox(label="Status", interactive=False)
 
-    demo.load(fn=load_model, inputs=[], outputs=model_state)
+        with gr.Accordion("Advanced settings", open=False):
+            temperature = gr.Slider(0.1, 2.0, value=0.8, step=0.05, label="Temperature (creativity)")
+            exaggeration = gr.Slider(0.1, 2.0, value=0.5, step=0.05, label="Emotion exaggeration")
+            top_p = gr.Slider(0.0, 1.0, value=1.0, step=0.01, label="Top-p")
+            min_p = gr.Slider(0.0, 0.5, value=0.05, step=0.01, label="Min-p")
+            repetition_penalty = gr.Slider(1.0, 2.0, value=1.2, step=0.05, label="Repetition penalty")
 
-    run_btn.click(
-        fn=generate,
-        inputs=[
-            model_state,
-            text,
-            ref_wav,
-            exaggeration,
-            temp,
-            seed_num,
-            cfg_weight,
-            min_p,
-            top_p,
-            repetition_penalty,
-        ],
-        outputs=audio_output,
-    )
+        generate_btn.click(
+            synthesize,
+            inputs=[
+                text_input,
+                reference_audio,
+                model_choice,
+                temperature,
+                exaggeration,
+                top_p,
+                min_p,
+                repetition_penalty,
+            ],
+            outputs=[output_audio, status_box],
+        )
+
+    return demo
+
 
 if __name__ == "__main__":
-    demo.queue(
-        max_size=50,
-        default_concurrency_limit=1,
-    ).launch(
-        server_name="0.0.0.0",
-        server_port=7861,
-        share=False
-    )
+    iface = create_interface()
+    iface.launch(server_name="0.0.0.0", server_port=7861, share=False)
