@@ -35,6 +35,20 @@ mkdir -p "${PROJECT_ROOT}/models/comfyui"
 mkdir -p "${PROJECT_ROOT}/comfyui_bridge/workflows"
 mkdir -p "${PROJECT_ROOT}/comfyui_bridge/output"
 
+MANAGER_DIR="${COMFYUI_DIR}/custom_nodes/ComfyUI-Manager"
+if [ ! -d "$MANAGER_DIR" ]; then
+    echo "Installing ComfyUI Manager extension..."
+    mkdir -p "$(dirname "$MANAGER_DIR")"
+    if ! git clone https://github.com/Comfy-Org/ComfyUI-Manager.git "$MANAGER_DIR"; then
+        echo "Warning: failed to clone ComfyUI Manager"
+    fi
+elif [ -d "$MANAGER_DIR/.git" ]; then
+    echo "Updating ComfyUI Manager extension..."
+    if ! git -C "$MANAGER_DIR" pull --ff-only; then
+        echo "Warning: failed to update ComfyUI Manager"
+    fi
+fi
+
 
 # Use shared root venv
 VENV_PATH="${PROJECT_ROOT}/venv"
