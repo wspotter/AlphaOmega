@@ -337,8 +337,16 @@
                     statusClass = 'status-planned';
                     statusText = '📋 Planned';
                 } else if (service.status === 'development') {
-                    statusClass = 'status-development';
-                    statusText = '🔧 In Development';
+                    if (service.responsive) {
+                        statusClass = 'status-running';
+                        statusText = '✓ Running (Dev)';
+                    } else if (service.running) {
+                        statusClass = 'status-starting';
+                        statusText = '⚡ Starting (Dev)';
+                    } else {
+                        statusClass = 'status-development';
+                        statusText = '🔧 In Development';
+                    }
                 } else if (service.responsive) {
                     statusClass = 'status-running';
                     statusText = '✓ Running';
@@ -421,6 +429,63 @@
                         </div>
                     `;
                 }
+
+                if (key === 'agents' && service.details) {
+                    if (service.details.agent_status) {
+                        detailsHtml += `
+                            <div class="detail-row">
+                                <span class="detail-label">Agent Status:</span>
+                                <span class="detail-value">${service.details.agent_status}</span>
+                            </div>
+                        `;
+                    }
+                    if (service.details.safe_mode !== undefined) {
+                        const safeMode = String(service.details.safe_mode).toLowerCase();
+                        detailsHtml += `
+                            <div class="detail-row">
+                                <span class="detail-label">Safe Mode:</span>
+                                <span class="detail-value">${safeMode}</span>
+                            </div>
+                        `;
+                    }
+                    if (service.details.vision_model) {
+                        detailsHtml += `
+                            <div class="detail-row">
+                                <span class="detail-label">Vision Model:</span>
+                                <span class="detail-value">${service.details.vision_model}</span>
+                            </div>
+                        `;
+                    }
+                    if (service.details.ollama_host) {
+                        detailsHtml += `
+                            <div class="detail-row">
+                                <span class="detail-label">Ollama Host:</span>
+                                <span class="detail-value">${service.details.ollama_host}</span>
+                            </div>
+                        `;
+                    }
+                    if (service.details.capabilities) {
+                        const enabledCaps = Object.entries(service.details.capabilities)
+                            .filter(([_, enabled]) => enabled)
+                            .map(([name]) => name)
+                            .join(', ') || 'none';
+                        detailsHtml += `
+                            <div class="detail-row">
+                                <span class="detail-label">Capabilities:</span>
+                                <span class="detail-value">${enabledCaps}</span>
+                            </div>
+                        `;
+                    }
+                    if (service.details.last_heartbeat) {
+                        const heartbeat = new Date(service.details.last_heartbeat).toLocaleTimeString();
+                        detailsHtml += `
+                            <div class="detail-row">
+                                <span class="detail-label">Last Heartbeat:</span>
+                                <span class="detail-value">${heartbeat}</span>
+                            </div>
+                        `;
+                    }
+                }
                 
                 // TTS voices list (Coqui)
                 if (key === 'tts' && service.details && service.details.voices) {
@@ -469,6 +534,15 @@
                         </div>
                     `;
                 }
+
+                if (service.error) {
+                    detailsHtml += `
+                        <div class="detail-row" style="color: #d32f2f;">
+                            <span class="detail-label">Error:</span>
+                            <span class="detail-value">${service.error}</span>
+                        </div>
+                    `;
+                }
                 
                 // Action buttons
                 let actionsHtml = '';
@@ -480,20 +554,34 @@
                         </a>
                     `;
                 } else if (service.status === 'development') {
-                    actionsHtml = `
+                    const cautionTag = `
                         <button class="btn btn-small" style="background: #9E9E9E; color: white; cursor: not-allowed;" disabled>
                             🔧 Under Development
                         </button>
                     `;
-                } else if (service.responsive && service.url) {
+                    if (service.running) {
+                        actionsHtml = `
+                            ${service.responsive && service.url ? `<a href="${service.url}" target="_blank" class="btn btn-link btn-small">🔗 Open Service</a>` : ''}
+                            ${service.gui_url ? `<a href="${service.gui_url}" target="_blank" class="btn btn-link btn-small" style="background: linear-gradient(135deg, #FA8BFF 0%, #2BD2FF 90%); color: white;">🎨 ${service.gui_name || 'GUI'}</a>` : ''}
+                            <button class="btn btn-stop btn-small" onclick="stopService('${key}')">⏹️ Stop</button>
+                            ${cautionTag}
+                        `;
+                    } else {
+                        actionsHtml = `
+                            <button class="btn btn-start btn-small" onclick="startService('${key}')">▶️ Start (Beta)</button>
+                            ${cautionTag}
+                        `;
+                    }
+                } else if (service.running) {
+                    // Show Open Service and GUI buttons when service is running
                     actionsHtml = `
-                        <a href="${service.url}" target="_blank" class="btn btn-link btn-small">🔗 Open Service</a>
-                        ${service.running ? `<button class="btn btn-stop btn-small" onclick="stopService('${key}')">⏹️ Stop</button>` : ''}
+                        ${service.responsive && service.url ? `<a href="${service.url}" target="_blank" class="btn btn-link btn-small">🔗 Open Service</a>` : ''}
+                        ${service.gui_url ? `<a href="${service.gui_url}" target="_blank" class="btn btn-link btn-small" style="background: linear-gradient(135deg, #FA8BFF 0%, #2BD2FF 90%); color: white;">🎨 ${service.gui_name || 'GUI'}</a>` : ''}
+                        <button class="btn btn-stop btn-small" onclick="stopService('${key}')">⏹️ Stop</button>
                     `;
                 } else {
                     actionsHtml = `
                         <button class="btn btn-start btn-small" onclick="startService('${key}')">▶️ Start</button>
-                        ${service.running ? `<button class="btn btn-stop btn-small" onclick="stopService('${key}')">⏹️ Stop</button>` : ''}
                     `;
                 }
                 

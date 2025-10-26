@@ -32,7 +32,12 @@ mkdir -p "$PROJECT_DIR/logs"
 
 # Function to check if port is in use
 port_in_use() {
-    lsof -i:$1 > /dev/null 2>&1
+    # ss returns exit code 0 even with zero matches, so check for any output
+    if ss -H -ltn "sport = :$1" 2>/dev/null | grep -q .; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 # Function to start service in background
@@ -81,7 +86,14 @@ mkdir -p "$PROJECT_DIR/logs"
 
 # Start unified MCP server (mcpart with filesystem, business, and universal tools)
 # 50 total tools: 14 filesystem + 36 business management
-MCP_CMD="cd $PROJECT_DIR/agent_s/mcp/mcpart && $HOME/.local/bin/uvx mcpo --port 8002 -- node build/index.js"
+MCPART_DIR="$PROJECT_DIR/mcpart"
+
+if [ ! -f "$MCPART_DIR/build/index.js" ]; then
+    echo "Building mcpart..."
+    (cd "$MCPART_DIR" && npm run build)
+fi
+
+MCP_CMD="cd $MCPART_DIR && $HOME/.local/bin/uvx mcpo --port 8002 -- node build/index.js"
 start_service "mcp-server" "$MCP_CMD" 8002
 
 echo ""
@@ -122,6 +134,10 @@ echo "Logs are in: $PROJECT_DIR/logs/"
 echo ""
 echo "To stop all services:"
 echo "  $SCRIPT_DIR/stop-all.sh"
+echo ""
+echo "Optional TTS (Chatterbox Docker):"
+echo "  $PROJECT_DIR/scripts/start-tts.sh"
+echo "  $PROJECT_DIR/scripts/stop-tts.sh"
 echo ""
 echo "To view logs:"
 echo "  tail -f $PROJECT_DIR/logs/openwebui.log"

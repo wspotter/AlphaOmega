@@ -1,0 +1,15 @@
+use_default_settings: true
+general:
+  debug: false
+  instance_name: SearXNG
+search:
+  safe_search: 2
+  autocomplete: duckduckgo
+  formats:
+  - html
+server:
+  secret_key: 482bd1acc996493e7ce86c4c25444c9d094a01c982acbae283a84e0efc049c8e
+  limiter: true
+  image_proxy: true
+valkey:
+  url: valkey://localhost:6379/0

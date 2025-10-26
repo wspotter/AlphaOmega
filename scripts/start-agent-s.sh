@@ -13,13 +13,14 @@ mkdir -p "$LOG_DIR"
 
 echo "🤖 Starting Agent-S (Computer Use Automation)..."
 
-# Activate venv
-if [ ! -d "$VENV_DIR" ]; then
-    echo "Creating Python virtual environment..."
-    python3 -m venv "$VENV_DIR"
-fi
 
-source "$VENV_DIR/bin/activate"
+# Use shared root venv
+VENV_PATH="$PROJECT_DIR/venv"
+if [ ! -d "$VENV_PATH" ]; then
+    echo "Creating shared Python virtual environment..."
+    python3 -m venv "$VENV_PATH"
+fi
+source "$VENV_PATH/bin/activate"
 
 # Load Agent-S configuration
 if [ -f "$PROJECT_DIR/.env" ]; then

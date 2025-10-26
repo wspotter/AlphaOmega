@@ -14,6 +14,10 @@ from pathlib import Path
 from datetime import datetime
 import logging
 from dotenv import load_dotenv
+try:
+    import yaml
+except Exception:
+    yaml = None
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -28,12 +32,16 @@ from agent_s.mcp.client import MCPClient
 # Load environment
 load_dotenv()
 
+# Ensure logs directory exists
+log_file = os.getenv("AGENT_LOG_FILE", str(Path(__file__).parent.parent / "logs" / "agent_actions.log"))
+os.makedirs(Path(log_file).parent, exist_ok=True)
+
 # Setup logging
 logging.basicConfig(
     level=getattr(logging, os.getenv("AGENT_LOG_LEVEL", "INFO")),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(os.getenv("AGENT_LOG_FILE", "logs/agent_actions.log")),
+        logging.FileHandler(log_file),
         logging.StreamHandler()
     ]
 )
@@ -73,6 +81,21 @@ async def startup_event():
     logger.info("Starting Agent-S server...")
     
     try:
+        # Load optional YAML config (agent_s/config.yaml) and set env vars from it
+        config_path = Path(__file__).parent / "config.yaml"
+        if config_path.exists() and yaml is not None:
+            try:
+                with open(config_path, "r") as fh:
+                    cfg = yaml.safe_load(fh) or {}
+                # Support config structure: { vision: { model: "llava:13b", host: "http://..." } }
+                vision_cfg = cfg.get("vision", {}) if isinstance(cfg, dict) else {}
+                if vision_cfg.get("model"):
+                    os.environ["VISION_MODEL"] = str(vision_cfg.get("model"))
+                if vision_cfg.get("host"):
+                    os.environ["OLLAMA_VISION_HOST"] = str(vision_cfg.get("host"))
+                logger.info(f"Loaded agent_s config from {config_path}")
+            except Exception as e:
+                logger.warning(f"Failed to load config.yaml: {e}")
         # Initialize vision analyzer
         vision_analyzer = VisionAnalyzer(
             ollama_host=os.getenv("OLLAMA_VISION_HOST", "http://localhost:11434"),

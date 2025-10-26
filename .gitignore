@@ -29,6 +29,9 @@ models/comfyui/*
 screenshots/
 /agent_screenshots/
 
+# Docker
+docker-compose.override.yml
+
 # IDE
 .vscode/
 .idea/

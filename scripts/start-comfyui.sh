@@ -21,6 +21,7 @@ if [ -f "$PID_FILE" ]; then
     fi
 fi
 
+echo "$COMFYUI_PID" > "$PID_FILE"
 # Check if ComfyUI exists
 if [ ! -d "$COMFYUI_DIR" ]; then
     echo "❌ ComfyUI not found at $COMFYUI_DIR"
@@ -34,11 +35,26 @@ mkdir -p "${PROJECT_ROOT}/models/comfyui"
 mkdir -p "${PROJECT_ROOT}/comfyui_bridge/workflows"
 mkdir -p "${PROJECT_ROOT}/comfyui_bridge/output"
 
-echo "Starting ComfyUI on port ${PORT}..."
 
-# Start ComfyUI
+# Use shared root venv
+VENV_PATH="${PROJECT_ROOT}/venv"
+if [ ! -d "$VENV_PATH" ]; then
+    echo "Creating shared Python virtual environment..."
+    python3 -m venv "$VENV_PATH"
+fi
+source "$VENV_PATH/bin/activate"
+
+# Install dependencies if requirements.txt exists
 cd "${COMFYUI_DIR}"
-nohup venv/bin/python main.py --listen --port "${PORT}" > "${LOG_FILE}" 2>&1 &
+if [ -f "requirements.txt" ]; then
+    pip install --upgrade pip
+    pip install -r requirements.txt
+else
+    echo "No requirements.txt found in ComfyUI directory."
+fi
+
+echo "Starting ComfyUI on port ${PORT}..."
+nohup "$VENV_PATH/bin/python" main.py --listen --port "${PORT}" > "${LOG_FILE}" 2>&1 &
 
 COMFYUI_PID=$!
 echo "$COMFYUI_PID" > "$PID_FILE"

@@ -20,9 +20,9 @@ class Pipeline:
         _COMFYUI_DEFAULT = os.getenv("COMFYUI_HOST", "http://localhost:8188")
         _AGENT_S_DEFAULT = os.getenv("AGENT_S_HOST", "http://localhost:8001")
         _MCP_DEFAULT = os.getenv("MCP_HOST", "http://localhost:8002")
-        _VISION_MODEL_DEFAULT = os.getenv("VISION_MODEL", "devstral-vision")
-        _REASONING_MODEL_DEFAULT = os.getenv("REASONING_MODEL", "llama3-8b")
-        _CODE_MODEL_DEFAULT = os.getenv("CODE_MODEL", "phind-codellama")
+        _VISION_MODEL_DEFAULT = os.getenv("VISION_MODEL", "llama3.2-vision:latest")
+        _REASONING_MODEL_DEFAULT = os.getenv("REASONING_MODEL", "llama3.1:8b")
+        _CODE_MODEL_DEFAULT = os.getenv("CODE_MODEL", "codellama:13b")
 
         OLLAMA_VISION_HOST: str = Field(
             default=_OLLAMA_VISION_DEFAULT,
@@ -62,26 +62,23 @@ class Pipeline:
         )
     
     def __init__(self):
-        self.name = "AlphaOmega Router"
+        self.name = "AlphaOmega"
         self.valves = self.Valves()
         self.id = "alphaomega_router"
-        self.type = "manifold"
-        
-    def pipes(self) -> List[dict]:
-        """Available backend options"""
-        return [
-            {"id": "vision", "name": f"Vision ({self.valves.VISION_MODEL})"},
-            {"id": "reasoning", "name": f"Reasoning ({self.valves.REASONING_MODEL})"},
-            {"id": "code", "name": f"Code ({self.valves.CODE_MODEL})"},
-            {"id": "agent", "name": "Computer Use (Agent-S)"},
-            {"id": "image", "name": "Image Generation (ComfyUI)"},
-            {"id": "mcp", "name": "Tools (MCP)"},
-        ]
+        # Note: Removed pipes() method - this is now a unified router that auto-detects intent
+        # Instead of selecting sub-models, users just chat normally and the pipeline routes intelligently
     
     def _detect_intent(self, message: str) -> str:
         """Detect user intent from message content"""
         message_lower = message.lower()
         
+        # ComfyUI manager keywords (check FIRST for explicit management commands)
+        comfyui_manager_keywords = [
+            "comfyui status", "status of comfyui", "is comfyui running", "list comfyui workflows", "reload comfyui", "restart comfyui", "comfyui info", "comfyui manager"
+        ]
+        if any(kw in message_lower for kw in comfyui_manager_keywords):
+            return "comfyui_manager"
+
         # MCP tool keywords (check FIRST before image keywords to avoid false positives)
         mcp_keywords = [
             # Artifacts & Memory
@@ -89,8 +86,9 @@ class Pipeline:
             "save to memory", "remember this", "store this",
             # File operations
             "read file", "write file", "list files", "file operation",
-            # Tasks
-            "task", "todo", "to-do", "list tasks", "my tasks", "create task", "add task",
+            # Tasks (broader patterns)
+            "task", "todo", "to-do", "what do i need to do", "what should i do",
+            "do i have any", "list tasks", "my tasks", "create task", "add task",
             # Inventory (check before 'paint' in image keywords)
             "inventory", "stock", "low stock", "check inventory", "in stock", "out of stock",
             # Customers
@@ -184,7 +182,10 @@ class Pipeline:
                 })
             
             # Route to appropriate backend
-            if intent == "image":
+            if intent == "comfyui_manager":
+                async for chunk in self._route_to_comfyui_manager(user_message, messages, __event_emitter__):
+                    yield chunk
+            elif intent == "image":
                 async for chunk in self._route_to_comfyui(user_message, messages, __event_emitter__):
                     yield chunk
             elif intent == "agent":
@@ -211,6 +212,79 @@ class Pipeline:
                     self.valves.OLLAMA_REASONING_HOST, __event_emitter__
                 ):
                     yield chunk
+                    
+        except Exception as e:
+            yield f"Error in pipeline routing: {str(e)}"
+    
+    async def _route_to_comfyui_manager(
+        self,
+        message: str,
+        messages: List[Dict],
+        event_emitter: Any = None
+    ) -> AsyncGenerator[str, None]:
+        """Route to ComfyUI manager for status, workflow listing, reload, etc."""
+        try:
+            if event_emitter:
+                await event_emitter({
+                    "type": "status",
+                    "data": {"description": "Managing ComfyUI...", "done": False}
+                })
+
+            message_lower = message.lower()
+            client = httpx.AsyncClient(timeout=30.0)
+
+            # Status check
+            if "status" in message_lower or "is comfyui running" in message_lower:
+                try:
+                    response = await client.get(f"{self.valves.COMFYUI_HOST}/api/status")
+                    if response.status_code == 200:
+                        status = response.json()
+                        yield f"✅ ComfyUI status: {json.dumps(status, indent=2)}"
+                    else:
+                        yield f"ComfyUI status error: {response.status_code}"
+                except Exception as e:
+                    yield f"Error checking ComfyUI status: {str(e)}"
+                return
+
+            # List workflows
+            if "workflow" in message_lower:
+                try:
+                    response = await client.get(f"{self.valves.COMFYUI_HOST}/api/workflows")
+                    if response.status_code == 200:
+                        workflows = response.json()
+                        if workflows:
+                            yield "**ComfyUI Workflows:**\n"
+                            for wf in workflows:
+                                yield f"- {wf.get('name', 'Unnamed')} (ID: {wf.get('id', 'N/A')})\n"
+                        else:
+                            yield "No workflows found."
+                    else:
+                        yield f"ComfyUI workflow error: {response.status_code}"
+                except Exception as e:
+                    yield f"Error listing ComfyUI workflows: {str(e)}"
+                return
+
+            # Reload/restart
+            if "reload" in message_lower or "restart" in message_lower:
+                try:
+                    response = await client.post(f"{self.valves.COMFYUI_HOST}/api/reload")
+                    if response.status_code == 200:
+                        yield "✅ ComfyUI reloaded successfully."
+                    else:
+                        yield f"ComfyUI reload error: {response.status_code}"
+                except Exception as e:
+                    yield f"Error reloading ComfyUI: {str(e)}"
+                return
+
+            # Info
+            if "info" in message_lower or "manager" in message_lower:
+                yield "ComfyUI Manager: You can check status, list workflows, or reload the service. Try commands like 'comfyui status', 'list comfyui workflows', or 'reload comfyui'."
+                return
+
+            # Default
+            yield "ComfyUI Manager: No valid management command detected. Try 'status', 'workflow', or 'reload'."
+        except Exception as e:
+            yield f"Error in ComfyUI manager: {str(e)}"
                     
         except Exception as e:
             error_msg = f"Error in pipeline: {str(e)}"
@@ -399,16 +473,21 @@ class Pipeline:
         """Detect which MCP tool to call and extract parameters"""
         message_lower = message.lower()
         
-        # Task management
-        if "list task" in message_lower or "my task" in message_lower or "what task" in message_lower or "show task" in message_lower:
-            return ("list_tasks", {})
-        if "create task" in message_lower or "add task" in message_lower or "new task" in message_lower:
-            # Extract task details (simple version)
-            task_text = message.split("task")[-1].strip().strip(":").strip()
-            return ("create_task", {
-                "title": task_text,
-                "priority": "medium"
-            })
+        # Task management - more flexible patterns
+        if "task" in message_lower or "todo" in message_lower or "to-do" in message_lower:
+            # Check if it's a query about tasks (default to list)
+            query_words = ["list", "show", "my", "what", "do i have", "get", "see", "today", "tomorrow"]
+            is_query = any(word in message_lower for word in query_words)
+            
+            if "create" in message_lower or "add" in message_lower or "new" in message_lower:
+                # Extract task details (simple version)
+                task_text = message.split("task")[-1].strip().strip(":").strip()
+                return ("create_task", {
+                    "title": task_text,
+                    "priority": "medium"
+                })
+            elif is_query or len(message_lower.split()) <= 5:  # Short queries default to list
+                return ("list_tasks", {})
         
         # Inventory
         if "inventory" in message_lower or "stock" in message_lower:
@@ -581,3 +660,8 @@ class Pipeline:
                 f.write(json.dumps(log_entry) + "\n")
         except Exception:
             pass  # Don't fail on logging errors
+
+
+class Pipe(Pipeline):
+    """Expose Pipeline logic under the class name OpenWebUI expects."""
+

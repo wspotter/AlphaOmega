@@ -1,0 +1,58 @@
+{
+  "models": [
+    {
+      "id": "alphaomega_router.vision",
+      "name": "AlphaOmega Router/Vision (llava:34b)",
+      "owned_by": "pipeline",
+      "pipe": {
+        "id": "alphaomega_router",
+        "name": "vision"
+      }
+    },
+    {
+      "id": "alphaomega_router.reasoning",
+      "name": "AlphaOmega Router/Reasoning (mistral:7b)",
+      "owned_by": "pipeline",
+      "pipe": {
+        "id": "alphaomega_router",
+        "name": "reasoning"
+      }
+    },
+    {
+      "id": "alphaomega_router.code",
+      "name": "AlphaOmega Router/Code (codellama:13b)",
+      "owned_by": "pipeline",
+      "pipe": {
+        "id": "alphaomega_router",
+        "name": "code"
+      }
+    },
+    {
+      "id": "alphaomega_router.agent",
+      "name": "AlphaOmega Router/Computer Use (Agent-S)",
+      "owned_by": "pipeline",
+      "pipe": {
+        "id": "alphaomega_router",
+        "name": "agent"
+      }
+    },
+    {
+      "id": "alphaomega_router.image",
+      "name": "AlphaOmega Router/Image Generation (ComfyUI)",
+      "owned_by": "pipeline",
+      "pipe": {
+        "id": "alphaomega_router",
+        "name": "image"
+      }
+    },
+    {
+      "id": "alphaomega_router.mcp",
+      "name": "AlphaOmega Router/Tools (MCP)",
+      "owned_by": "pipeline",
+      "pipe": {
+        "id": "alphaomega_router",
+        "name": "mcp"
+      }
+    }
+  ]
+}
