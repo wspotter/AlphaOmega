@@ -8,6 +8,12 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![NVIDIA CUDA Compatible](https://img.shields.io/badge/NVIDIA-CUDA-green.svg)](https://developer.nvidia.com/cuda-toolkit)
 
+## 📦 AlphaOmega v2
+
+We are rebuilding the platform on branch `alphaomega-v2` with a fresh layout living under the `v2/` directory.
+- Explore `v2/README.md` for the new module structure and migration plan.
+- Stay on `main` (current v1) if you need the existing setup until the v2 cutover completes.
+
 ## 🌟 Features
 
 ### Core Services
