@@ -33,6 +33,17 @@ The system will now automatically:
 - Apply the appropriate voice tone
 - No manual emotion selection needed
 
+## Use Your Cloned Voice
+
+1. Run the Chatterbox GUI with `./scripts/start-chatterbox-gui.sh` and upload your voice sample (for example `/tmp/chatterbox_voice.wav`).
+2. Copy the final sample into `/tmp` so the Docker container can read it:
+  ```bash
+  cp tts/voice-sample-merged.wav /tmp/chatterbox_voice.wav
+  ```
+3. In OpenWebUI go to **Settings → Pipelines → Auto Emotion TTS → Configure**.
+4. Set `voice_prompt_path` to `/tmp/chatterbox_voice.wav` (or whatever path you chose) and save.
+5. Back in chat, click the speaker icon—the pipeline now sends the sample path to Chatterbox so every response clones that voice.
+
 ## Troubleshooting
 
 ### Can't find TTS settings?

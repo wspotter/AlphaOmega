@@ -16,6 +16,12 @@ We ship a ready-to-use graphical interface so you can try voice cloning without 
 3. Open your browser to [http://localhost:7861](http://localhost:7861).
 4. Upload a short voice sample and type text to hear the cloned result.
 
+To use the cloned voice in OpenWebUI, copy the merged sample into `/tmp` so the Docker container can access it:
+```bash
+cp tts/voice-sample-merged.wav /tmp/chatterbox_voice.wav
+```
+Then set `voice_prompt_path` in the **Auto Emotion TTS** pipeline configuration to the same path.
+
 The GUI runs on top of `tts/chatterbox_official_gui.py`. You can stop it anytime with `pkill -f chatterbox_official_gui.py` or by running `./scripts/stop-tts.sh` to shut down every Chatterbox process.
 
 ## Helpful extras

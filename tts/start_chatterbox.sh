@@ -28,6 +28,7 @@ docker run -d \
   $GPU_ARGS \
   -p "$PORT:5003" \
   -v "$PROJECT_ROOT/logs:/app/logs" \
+  -v /tmp:/tmp \
   --restart unless-stopped \
   "$IMAGE_NAME"
 

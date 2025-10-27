@@ -7,6 +7,7 @@ import re
 import httpx
 import json
 from pydantic import BaseModel
+from pathlib import Path
 
 
 class Pipeline:
@@ -20,6 +21,7 @@ class Pipeline:
         chatterbox_url: str = "http://localhost:5003/v1/audio/speech"
         enable_auto_emotion: bool = True
         log_emotion_detection: bool = True
+        voice_prompt_path: str = ""
         
     def __init__(self):
         self.type = "manifold"
@@ -127,6 +129,14 @@ class Pipeline:
             "voice": body.get("voice", "alloy"),
             "response_format": body.get("response_format", "wav")
         }
+
+        prompt_path = self.valves.voice_prompt_path.strip()
+        if prompt_path:
+            resolved = Path(prompt_path).expanduser()
+            if resolved.exists():
+                chatterbox_request["audio_prompt_path"] = str(resolved)
+            elif self.valves.log_emotion_detection:
+                print(f"[Auto Emotion TTS] Voice sample missing: {resolved}")
         
         # Call Chatterbox
         try:
